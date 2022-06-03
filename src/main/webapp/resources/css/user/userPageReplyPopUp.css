@@ -1,0 +1,76 @@
+html{
+    overflow: hidden;
+}
+
+.container{
+   position: relative;
+   width: 70%;
+   height: auto;
+   text-align: center;
+   transform : translate(20%);
+}
+
+h2 {
+    color: #1fa5fd;
+    font-size: 2em;
+    margin-top: 5%;
+    text-align: center;
+}
+
+.message {
+    text-align: center;
+    margin: 0 auto;
+}
+
+.form-control {
+    display: inline-block;
+    text-align: center;
+    width: 80%;
+    height: 2em;
+    font-size: 15px;
+    border: 0;
+    border-radius: 1em;
+    outline: none;
+    background-color: rgb(233, 233, 233);
+}
+
+.btn_area {
+    margin-top: 27px;
+    padding: 6px 12px;
+}
+
+.click_btn {
+    width: auto;
+    height: 40px;
+    background-color:#1fa5fd;
+    border-radius:6px;
+    border:0;
+    display:inline-block;
+    cursor:pointer;
+    color:#ffffff;
+    font-size:15px;
+    font-weight:bold;
+    padding:6px 24px;
+    text-decoration:none;
+}
+
+.click_btn:hover{
+    background-color: #0c63e4;
+}
+
+
+/*텍스트 area */
+.noresize {
+    resize: none;
+    width: 80%;
+    height: 6.25em;
+    border: none;
+    white-space: pre-wrap;
+    background-color: rgb(233, 233, 233);
+    border-radius:6px;
+    border: 0;
+}
+
+.noresize:focus {
+    outline: none;
+}

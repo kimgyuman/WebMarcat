@@ -1,0 +1,1632 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.myPage.dao.UserPageDAO">
+
+    <select id="JusoConverter" resultMap="jusoDTO">
+        select * from lee.koreaarea where adm_nm= #{admNm}
+    </select>
+
+    <!-- 정보 수정 -->
+    <update id="UpdateMember">
+        update LEE.MEMBER
+        set ADM_CD8   = #{admCd8},
+            nick_name = #{nickName},
+            phone_num = #{phoneNum}
+        where member_id = #{id}
+    </update>
+
+    <!-- 닉네임 수정시 => 마켓 닉네임 비교해서 닉네임 수정 -->
+    <update id="UpdateGoodsNick">
+        update lee.goods g
+        set g.g_nick_name = (
+             select m.nick_name
+             from lee.member m
+             where g.member_id = m.member_id
+             )
+        where g.member_id = #{memberId}
+    </update>
+
+    <!-- 닉네임 수정시 => 보드 닉네임 비교해서 닉네임 수정 -->
+    <update id="UpdateBoardNick">
+        update lee.board b
+        set b.nick_name = (
+            select m.nick_name
+            from lee.member m
+            where b.member_id = m.member_id
+            )
+        where b.member_id = #{memberId}
+    </update>
+
+    <!-- 회원 프로필 조회 -->
+    <select id="MemberImage" resultMap="MemberImages">
+        select *
+        from LEE.MEMBERS_IMAGES
+        where member_id = #{id}
+    </select>
+
+    <!-- 회원 프로필 수정 -->
+    <update id="MemberImageUpdate">
+        update LEE.MEMBER_IMAGES
+        set mi_origin_file_name = #{originFileName},
+            mi_saved_file_name  = #{savedFileName},
+            mi_create_time      = #{createTime}
+        where mi_id = #{id}
+    </update>
+
+    <!-- 회원 탈퇴(비활성) -->
+    <update id="DeleteMember">
+        update LEE.MEMBER
+        set activated='INACTIVE'
+        where member_id = #{id}
+    </update>
+
+    <!-- 회원 탈퇴(비활성) -->
+    <update id="DeleteKakaoMember">
+        update LEE.MEMBER
+        set activated='INACTIVE'
+        where u_id = #{uid}
+    </update>
+
+    <!-- 비밀번호 변경 -->
+    <update id="pwUpdate">
+        update LEE.MEMBER
+        set passwd = #{passwd}
+        where member_id = #{id}
+    </update>
+
+    <select id="PagingReportBoard" resultMap="Board">
+        SELECT distinct
+               b.board_id,
+               b.member_id,
+               b.title,
+               b.contents,
+               b.view_count,
+               b.create_time,
+               b.status,
+               (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+               b.nick_name,
+               b.adm_cd8,
+               bi.id,
+               bi.board_id,
+               bi.origin_file_name,
+               bi.saved_file_name,
+               bi.create_time,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_id,
+               mi.member_id,
+               mi.mi_origin_file_name,
+               mi.mi_saved_file_name,
+               r.board_id
+        from(
+                select
+                    board_id,
+                    member_id,
+                    title,
+                    contents,
+                    view_count,
+                    create_time,
+                    status,
+                    wish_count,
+                    nick_name,
+                    adm_cd8
+                FROM (
+                         SELECT SEQ,
+                                board_id,
+                                member_id,
+                                title,
+                                contents,
+                                view_count,
+                                create_time,
+                                status,
+                                wish_count,
+                                nick_name,
+                                adm_cd8
+                         FROM (
+                                  SELECT ROWNUM AS SEQ,
+                                         board_id,
+                                         member_id,
+                                         title,
+                                         contents,
+                                         view_count,
+                                         create_time,
+                                         status,
+                                         wish_count,
+                                         nick_name,
+                                         adm_cd8
+                                  FROM (
+                                           SELECT b.board_id,
+                                                  b.member_id,
+                                                  b.title,
+                                                  b.contents,
+                                                  b.view_count,
+                                                  b.create_time,
+                                                  b.status,
+                                                  (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+                                                  b.nick_name,
+                                                  b.adm_cd8
+                                           FROM LEE.BOARD b
+                                           where b.member_id = #{id}
+                                           ORDER BY b.create_time DESC
+                                       )
+                              )
+                         WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) b
+                JOIN LEE.BOARD_IMAGES bi on b.BOARD_ID = bi.BOARD_ID
+                JOIN LEE.MEMBER m on b.member_id = m.member_id
+                JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+                JOIN LEE.BOARD_REPORT r on b.BOARD_ID = r.BOARD_ID
+                JOIN LEE.MEMBER_IMAGES mi ON b.MEMBER_ID = mi.MEMBER_ID order by b.create_time desc
+    </select>
+
+    <select id="PagingReportGoods" resultMap="Goods">
+        SELECT distinct
+        g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name,
+        gi.id,
+        gi.goods_id,
+        gi.origin_file_name,
+        gi.saved_file_name,
+        gi.create_time,
+        c.name,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name,
+        r.goods_id
+        FROM (
+        SELECT
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        (SELECT count(*)
+        FROM LEE.WISH_LIST wl
+        WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM LEE.GOODS g
+        where g.member_id = #{id}
+        ORDER BY g.g_create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        ) WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) g
+        JOIN (SELECT DISTINCT * FROM LEE.GOODS_IMAGES WHERE id NOT IN (SELECT gi.id FROM LEE.GOODS_IMAGES gi INNER JOIN
+        LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi on g.GOODS_ID = gi.GOODS_ID
+        JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+        JOIN LEE.MEMBER m on g.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+        JOIN LEE.report r on r.goods_id = g.goods_id
+        JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- UserLink Goods paging 정보 조회 -->
+    <select id="PagingActivityGoods" resultMap="Goods">
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name,
+        gi.id,
+        gi.goods_id,
+        gi.origin_file_name,
+        gi.saved_file_name,
+        gi.create_time,
+        c.name,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        FROM (
+        SELECT
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        (SELECT count(*)
+        FROM LEE.WISH_LIST wl
+        WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM LEE.GOODS g
+        where g.member_id=#{id}
+        ORDER BY g.g_create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        ) WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) g
+        JOIN (SELECT DISTINCT * FROM LEE.GOODS_IMAGES WHERE id NOT IN (SELECT gi.id FROM LEE.GOODS_IMAGES gi INNER JOIN
+        LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi on g.GOODS_ID = gi.GOODS_ID
+        JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+        JOIN LEE.MEMBER m on g.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- Goods paging 정보 조회 -->
+    <select id="PagingGoods" resultMap="Goods">
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name,
+        gi.id,
+        gi.goods_id,
+        gi.origin_file_name,
+        gi.saved_file_name,
+        gi.create_time,
+        c.name,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        FROM (
+        SELECT
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        (SELECT count(*)
+        FROM LEE.WISH_LIST wl
+        WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM LEE.GOODS g
+        <include refid="search"></include>
+        ORDER BY g.g_create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        ) WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) g
+        JOIN (SELECT DISTINCT * FROM LEE.GOODS_IMAGES WHERE id NOT IN (SELECT gi.id FROM LEE.GOODS_IMAGES gi INNER JOIN
+        LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi on g.GOODS_ID = gi.GOODS_ID
+        JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+        JOIN LEE.MEMBER m on g.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- Request Goods paging 정보 조회 -->
+    <select id="PagingRequestGoods" resultMap="RequestBuy">
+            SELECT rb.rb_id,
+                   rb.goods_id,
+                   rb.request_member_id,
+                   rb.request_status,
+                   rb.rb_create_time,
+                   gi.id,
+                   gi.goods_id,
+                   gi.origin_file_name,
+                   gi.saved_file_name,
+                   gi.create_time,
+                   g.goods_id,
+                   g.member_id,
+                   g.adm_cd8,
+                   g.categories_id,
+                   g.g_title,
+                   g.g_contents,
+                   g.g_sell_status,
+                   g.g_view_count,
+                   g.g_create_time,
+                   g.g_price,
+                   g.g_nego_status,
+                   g.g_wish_count,
+                   g.g_status,
+                   g.g_nick_name,
+                   k.adm_nm,
+                   m.nick_name
+            FROM (
+                     SELECT rb_id,
+                            goods_id,
+                            request_member_id,
+                            request_status,
+                            rb_create_time
+                     FROM (
+                              SELECT SEQ,
+                                     rb_id,
+                                     goods_id,
+                                     request_member_id,
+                                     request_status,
+                                     rb_create_time
+                              FROM (
+                                       SELECT ROWNUM AS SEQ,
+                                              rb_id,
+                                              goods_id,
+                                              request_member_id,
+                                              request_status,
+                                              rb_create_time
+                                       FROM (
+                                                SELECT rb.rb_id,
+                                                       rb.goods_id,
+                                                       rb.request_member_id,
+                                                       rb.request_status,
+                                                       rb.rb_create_time
+                                                FROM LEE.REQUEST_BUY rb
+                                                where rb.goods_id IN (SELECT goods_id FROM LEE.GOODS WHERE member_id = #{id})
+                                                and rb.goods_id IN (select goods_id from LEE.GOODS where g_sell_status = 'SELL')
+                                                or rb.goods_id IN (select goods_id from LEE.GOODS where g_sell_status = 'SELLING')
+                                            )
+                                   )
+                              WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+            )
+                     WHERE ROWNUM <![CDATA[ <= 12 ]]>
+            ) rb
+                     JOIN (SELECT DISTINCT *
+                           FROM LEE.GOODS_IMAGES
+                           WHERE id NOT IN (SELECT gi.id
+                                            FROM LEE.GOODS_IMAGES gi
+                                                     INNER JOIN
+                                                 LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi
+                          on rb.GOODS_ID = gi.GOODS_ID
+                     JOIN LEE.GOODS g ON rb.GOODS_ID = g.GOODS_ID
+                     JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+                     JOIN LEE.MEMBER m on rb.request_member_id = m.member_id
+            ORDER BY rb.rb_create_time DESC
+    </select>
+
+    <!-- GoodsComment paging 정보 조회 -->
+    <select id="PagingGoodsComment" resultMap="Comments">
+        SELECT gc.id,
+               gc.member_id,
+               gc.goods_id,
+               gc.contents,
+               gc.create_time,
+               g.g_title,
+               g.g_sell_status,
+               mi.mi_saved_file_name
+        FROM (
+                 SELECT id,
+                        member_id,
+                        goods_id,
+                        contents,
+                        create_time
+                 FROM (
+                          SELECT SEQ,
+                                 id,
+                                 member_id,
+                                 goods_id,
+                                 contents,
+                                 create_time
+                          FROM (
+                                   SELECT ROWNUM AS SEQ,
+                                          id,
+                                          member_id,
+                                          goods_id,
+                                          contents,
+                                          create_time
+                                   FROM (
+                                            SELECT gc.id,
+                                                   gc.member_id,
+                                                   gc.goods_id,
+                                                   gc.contents,
+                                                   gc.create_time
+                                            FROM LEE.GOODS_COMMENTS gc
+                                            where member_id = #{id}
+                                            ORDER BY gc.create_time DESC
+                                        )
+                               )
+                          WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+                 WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) gc
+                 JOIN LEE.GOODS g on g.GOODS_ID = gc.GOODS_ID
+                 JOIN LEE.MEMBER_IMAGES mi on mi.MEMBER_ID = gc.MEMBER_ID
+        ORDER BY gc.create_time DESC
+    </select>
+
+    <!-- BoardComment paging 정보 조회 -->
+    <select id="PagingBoardComment" resultMap="BoardComment">
+        SELECT bc.id,
+        bc.member_id,
+        bc.board_id,
+        bc.contents,
+        bc.create_time,
+        b.title,
+        b.nick_name,
+        mi.mi_saved_file_name
+        FROM (
+        SELECT id,
+        member_id,
+        board_id,
+        contents,
+        create_time
+        FROM (
+        SELECT SEQ,
+        id,
+        member_id,
+        board_id,
+        contents,
+        create_time
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        id,
+        member_id,
+        board_id,
+        contents,
+        create_time
+        FROM (
+        SELECT bc.id,
+        bc.member_id,
+        bc.board_id,
+        bc.contents,
+        bc.create_time
+        FROM LEE.BOARD_COMMENTS bc
+        where member_id = #{id}
+        ORDER BY bc.create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+        WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) bc
+        JOIN LEE.BOARD b on bc.BOARD_ID = b.BOARD_ID
+        JOIN LEE.MEMBER_IMAGES mi on  mi.MEMBER_ID = bc.MEMBER_ID
+        ORDER BY bc.create_time DESC
+    </select>
+
+    <!-- My request Goods paging 정보 조회 -->
+    <select id="PagingMyRequestGoods" resultMap="RequestBuy">
+        SELECT rb.rb_id,
+               rb.goods_id,
+               rb.request_member_id,
+               rb.request_status,
+               rb.rb_create_time,
+               gi.id,
+               gi.goods_id,
+               gi.origin_file_name,
+               gi.saved_file_name,
+               gi.create_time,
+               g.goods_id,
+               g.member_id,
+               g.adm_cd8,
+               g.categories_id,
+               g.g_title,
+               g.g_contents,
+               g.g_sell_status,
+               g.g_view_count,
+               g.g_create_time,
+               g.g_price,
+               g.g_nego_status,
+               g.g_wish_count,
+               g.g_status,
+               g.g_nick_name,
+               k.adm_nm,
+               m.nick_name
+        FROM (
+                 SELECT rb_id,
+                        goods_id,
+                        request_member_id,
+                        request_status,
+                        rb_create_time
+                 FROM (
+                          SELECT SEQ,
+                                 rb_id,
+                                 goods_id,
+                                 request_member_id,
+                                 request_status,
+                                 rb_create_time
+                          FROM (
+                                   SELECT ROWNUM AS SEQ,
+                                          rb_id,
+                                          goods_id,
+                                          request_member_id,
+                                          request_status,
+                                          rb_create_time
+                                   FROM (
+                                            SELECT rb.rb_id,
+                                                   rb.goods_id,
+                                                   rb.request_member_id,
+                                                   rb.request_status,
+                                                   rb.rb_create_time
+                                            FROM LEE.REQUEST_BUY rb
+                                            where request_member_id = #{id}
+                                            ORDER BY rb.rb_create_time DESC
+                                        )
+                               )
+                          WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+                 WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) rb
+                 JOIN (SELECT DISTINCT *
+                       FROM LEE.GOODS_IMAGES
+                       WHERE id NOT IN (SELECT gi.id
+                                        FROM LEE.GOODS_IMAGES gi
+                                                 INNER JOIN
+                                             LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi
+                      on rb.GOODS_ID = gi.GOODS_ID
+                 JOIN LEE.GOODS g ON rb.GOODS_ID = g.GOODS_ID
+                 JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+                 JOIN LEE.MEMBER m on rb.request_member_id = m.member_id
+        ORDER BY rb.rb_create_time DESC
+    </select>
+
+
+    <!-- My wanted Goods paging 정보 조회 -->
+    <select id="PagingMyWantedGoods" resultMap="WishList">
+        SELECT wl.wl_id,
+               wl.wanted_member_id,
+               wl.goods_id,
+               wl.wl_create_time,
+               gi.id,
+               gi.goods_id,
+               gi.origin_file_name,
+               gi.saved_file_name,
+               gi.create_time,
+               g.goods_id,
+               g.member_id,
+               g.adm_cd8,
+               g.categories_id,
+               g.g_title,
+               g.g_contents,
+               g.g_sell_status,
+               g.g_view_count,
+               g.g_create_time,
+               g.g_price,
+               g.g_nego_status,
+               g.g_wish_count,
+               g.g_status,
+               g.g_nick_name,
+               k.adm_nm,
+               m.nick_name
+        FROM (
+                 SELECT wl_id,
+                        wanted_member_id,
+                        goods_id,
+                        wl_create_time
+                 FROM (
+                          SELECT SEQ,
+                                 wl_id,
+                                 wanted_member_id,
+                                 goods_id,
+                                 wl_create_time
+                          FROM (
+                                   SELECT ROWNUM AS SEQ,
+                                          wl_id,
+                                          wanted_member_id,
+                                          goods_id,
+                                          wl_create_time
+                                   FROM (
+                                            SELECT wl.wl_id,
+                                                wl.wanted_member_id,
+                                                wl.goods_id,
+                                                wl.wl_create_time
+                                            FROM LEE.WISH_LIST wl
+                                            where wl.wanted_member_id = #{id}
+                                            ORDER BY wl.wl_create_time DESC
+                                        )
+                               )
+                          WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+                 WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) wl
+                 JOIN (SELECT DISTINCT *
+                       FROM LEE.GOODS_IMAGES
+                       WHERE id NOT IN (SELECT gi.id
+                                        FROM LEE.GOODS_IMAGES gi
+                                                 INNER JOIN
+                                             LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi
+                      on wl.GOODS_ID = gi.GOODS_ID
+                 JOIN LEE.GOODS g ON wl.GOODS_ID = g.GOODS_ID
+                 JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+                 JOIN LEE.MEMBER m on wl.wanted_member_id = m.member_id
+        ORDER BY wl.wl_create_time DESC
+    </select>
+
+    <!-- 게시판 위시리스트 -->
+    <select id="PagingMyWantedBoard" resultMap="BoardWishList">
+        SELECT
+        bwl.bwl_id,
+        bwl.b_wanted_member_id,
+        bwl.board_id,
+        bwl.bwl_create_time,
+        bi.id,
+        bi.board_id,
+        bi.origin_file_name,
+        bi.saved_file_name,
+        bi.create_time,
+        b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        b.nick_name,
+        m.nick_name,
+        k.adm_nm
+        FROM (
+        SELECT bwl_id,
+        b_wanted_member_id,
+        board_id,
+        bwl_create_time
+        FROM (
+        SELECT SEQ,
+        bwl_id,
+        b_wanted_member_id,
+        board_id,
+        bwl_create_time
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        bwl_id,
+        b_wanted_member_id,
+        board_id,
+        bwl_create_time
+        FROM (
+        SELECT bwl.bwl_id,
+        bwl.b_wanted_member_id,
+        bwl.board_id,
+        bwl.bwl_create_time
+        FROM LEE.BOARD_WISH_LIST bwl
+        where bwl.b_wanted_member_id = #{id}
+        ORDER BY bwl.bwl_create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+        WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) bwl
+        JOIN LEE.BOARD_IMAGES bi on bwl.BOARD_ID = bi.BOARD_ID
+        JOIN LEE.BOARD b ON bwl.board_ID = b.board_ID
+        JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER m on bwl.b_wanted_member_id = m.member_id
+        ORDER BY bwl.bwl_create_time DESC
+    </select>
+
+    <!-- UserLink Board paging 정보 조회 -->
+    <select id="PagingActivityBoard" resultMap="Board">
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8,
+        bi.id,
+        bi.board_id,
+        bi.origin_file_name,
+        bi.saved_file_name,
+        bi.create_time,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        from(
+        select
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT SEQ,
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8
+        FROM LEE.BOARD b
+        where b.member_id = #{id}
+        ORDER BY b.create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) b
+        JOIN LEE.BOARD_IMAGES bi on b.BOARD_ID = bi.BOARD_ID
+        JOIN LEE.MEMBER m on b.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON b.MEMBER_ID = mi.MEMBER_ID order by b.create_time desc
+    </select>
+
+    <!-- Board paging 정보 조회 -->
+    <select id="PagingBoard" resultMap="Board">
+        SELECT b.board_id,
+               b.member_id,
+               b.title,
+               b.contents,
+               b.view_count,
+               b.create_time,
+               b.status,
+               (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+               b.nick_name,
+               b.adm_cd8,
+               bi.id,
+               bi.board_id,
+               bi.origin_file_name,
+               bi.saved_file_name,
+               bi.create_time,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_id,
+               mi.member_id,
+               mi.mi_origin_file_name,
+               mi.mi_saved_file_name
+        from(
+                select
+                    board_id,
+                    member_id,
+                    title,
+                    contents,
+                    view_count,
+                    create_time,
+                    status,
+                    wish_count,
+                    nick_name,
+                    adm_cd8
+                FROM (
+                         SELECT SEQ,
+                                board_id,
+                                member_id,
+                                title,
+                                contents,
+                                view_count,
+                                create_time,
+                                status,
+                                wish_count,
+                                nick_name,
+                                adm_cd8
+                         FROM (
+                                  SELECT ROWNUM AS SEQ,
+                                         board_id,
+                                         member_id,
+                                         title,
+                                         contents,
+                                         view_count,
+                                         create_time,
+                                         status,
+                                         wish_count,
+                                         nick_name,
+                                         adm_cd8
+                                  FROM (
+                                           SELECT b.board_id,
+                                                  b.member_id,
+                                                  b.title,
+                                                  b.contents,
+                                                  b.view_count,
+                                                  b.create_time,
+                                                  b.status,
+                                                  (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+                                                  b.nick_name,
+                                                  b.adm_cd8
+                                           FROM LEE.BOARD b
+                                          where b.member_id = #{id}
+                                           ORDER BY b.create_time DESC
+                                       )
+                              )
+                         WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) b
+                JOIN LEE.BOARD_IMAGES bi on b.BOARD_ID = bi.BOARD_ID
+                JOIN LEE.MEMBER m on b.member_id = m.member_id
+                JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+                JOIN LEE.MEMBER_IMAGES mi ON b.MEMBER_ID = mi.MEMBER_ID order by b.create_time desc
+    </select>
+
+    <!-- id를 통한 board 조회 -->
+    <select id="FindBoardWithId" resultMap="Board">
+        SELECT b.board_id,
+               b.member_id,
+               b.title,
+               b.contents,
+               b.view_count,
+               b.create_time,
+               b.status,
+               (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+               b.nick_name,
+               b.adm_cd8,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_id,
+               mi.member_id,
+               mi.mi_origin_file_name,
+               mi.mi_saved_file_name
+        FROM LEE.BOARD b
+                 JOIN LEE.MEMBER m on b.member_id = m.member_id
+                 JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+                 join lee.member_images mi on b.member_id = mi.member_id
+        where b.BOARD_ID = #{id}
+        order by b.create_time DESC
+    </select>
+
+    <update id="GoodsStatusSold">
+        update lee.goods
+        set g_sell_status = 'SOLD'
+        where goods_id = #{id}
+    </update>
+
+    <update id="GoodsStatusSelling">
+        update lee.goods
+        set g_sell_status = 'SELLING'
+        where goods_id = #{id}
+    </update>
+
+    <update id="GoodsStatusSell">
+        update lee.goods
+        set g_sell_status = 'SELL'
+        where goods_id = #{id}
+    </update>
+
+    <select id="GoodsNotifyCount" resultMap="NotifyCountDTO">
+        select contents,count(*) as cnt
+        from lee.report
+        where goods_id = #{id}
+        group by contents
+    </select>
+
+    <resultMap id="NotifyCountDTO" type="marcat.myPage.dto.user.NotifyCountDTO">
+        <result property="contents" column="contents"/>
+        <result property="cnt" column="cnt"/>
+    </resultMap>
+
+    <!--profileImg를 통한 memberImages 조회 -->
+    <select id="FindProfileImgById" resultMap="MemberImages">
+        select *
+        from LEE.MEMBER_IMAGES
+        where member_id = #{memberId}
+    </select>
+
+    <!-- savedImage 정보로 memberImage 조회  -->
+    <select id="FindProfileSavedImgById" resultMap="MemberImages">
+        select *
+        from LEE.MEMBER_IMAGES
+        where mi_saved_file_name = #{savedFileName}
+    </select>
+
+    <!-- nickName을 통한 id 조회-->
+    <select id="FindNickNameById" resultMap="Member">
+        select *
+        from LEE.Member
+        where nick_name = #{nickName}
+    </select>
+
+    <select id="FindUserLinkById" resultMap="UserLinkDTO">
+        select m.member_id,
+               m.u_id,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_saved_file_name
+        from Lee.member m
+                 join Lee.koreaarea k
+                      on m.adm_cd8 = k.adm_cd8
+                 join Lee.member_images mi
+                      on m.member_id = mi.member_id
+        where m.member_id = #{id}
+    </select>
+
+    <select id="FindUserLinkMarketById" resultMap="UserLinkMarketDTO">
+        select m.member_id,
+               m.u_id,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_saved_file_name,
+               g.goods_id,
+               g.g_title,
+               g.g_view_count,
+               g.g_create_time
+        from Lee.member m
+                join Lee.koreaarea k
+                    on m.adm_cd8 = k.adm_cd8
+                join Lee.member_images mi
+                    on m.member_id = mi.member_id
+                join Lee.goods g
+                    on m.member_id = g.member_id
+        where m.member_id = #{id}
+    </select>
+
+    <select id="FindUserLinkBoardById" resultMap="UserLinkBoardDTO">
+        select m.member_id,
+               m.u_id,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_saved_file_name,
+               b.board_id,
+               b.title,
+               b.view_count,
+               b.create_time
+        from Lee.member m
+                 join Lee.koreaarea k
+                      on m.adm_cd8 = k.adm_cd8
+                 join Lee.member_images mi
+                      on m.member_id = mi.member_id
+                 join Lee.goods g
+                      on m.member_id = b.member_id
+        where m.member_id = #{id}
+    </select>
+
+    <!-- 전체 메세지 조회 -->
+    <select id="AllMessage" resultMap="Message">
+        select * from LEE.MESSAGE;
+    </select>
+
+    <select id="FindMessageById" resultMap="Message">
+        select * from lee.message where ms_id=#{msId}
+    </select>
+
+    <!--메세지 전송 -->
+    <insert id="SendMessage">
+        <selectKey keyProperty="msId" resultType="java.lang.Long" order="BEFORE">
+            select LEE.message_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.MESSAGE(
+        ms_id,
+        target_id,
+        sender_id,
+        ms_Message,
+        ms_create_time
+        )
+        VALUES(
+        #{msId},
+        #{targetId},
+        #{senderId},
+        #{msMessage},
+        #{msCreateTime}
+        )
+    </insert>
+
+    <update id="RequestAccept">
+        update lee.request_buy
+        set request_status = '수락됨'
+        where rb_id = #{id}
+    </update>
+
+    <update id="RequestRefuse">
+        update lee.request_buy
+        set request_status = '거절됨'
+        where rb_id = #{id}
+    </update>
+
+    <delete id="DeleteWish">
+        delete from lee.wish_list
+        where wl_id = #{id}
+    </delete>
+
+    <delete id="DeleteBoardWish">
+        delete from lee.board_wish_list
+        where bwl_id = #{id}
+    </delete>
+
+    <delete id="DeleteRequest">
+        delete from lee.request_buy
+        where rb_id = #{id}
+    </delete>
+
+    <!-- 보낸 편지함 -->
+    <select id="PagingSendMessage" resultMap="Message">
+        select
+        ms.ms_id,
+        ms.target_id,
+        ms.sender_id,
+        ms.ms_message,
+        ms.ms_create_time,
+        m.member_id,
+        m.nick_name,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_create_time,
+        mi.mi_saved_file_name,
+        mi.mi_origin_file_name
+        from(select ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select seq,
+        ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select rownum as seq,
+        ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select
+        ms.ms_id,
+        ms.target_id,
+        ms.sender_id,
+        ms.ms_message,
+        ms.ms_create_time
+        from lee.message ms
+        where ms.sender_id = #{senderId}
+        order by ms_create_time desc
+        )
+        )
+        where seq <![CDATA[ >= #{startNum} ]]>
+        )
+        where rownum <![CDATA[ <= 12 ]]>
+        ) ms
+        JOIN LEE.MEMBER m ON ms.target_id = m.member_id
+        JOIN Lee.member_images mi ON ms.target_id = mi.member_id
+        order by ms.ms_create_time desc
+    </select>
+
+    <!-- 받은편지함 -->
+    <select id="PagingTargetMessage" resultMap="Message">
+        select
+        ms.ms_id,
+        ms.target_id,
+        ms.sender_id,
+        ms.ms_message,
+        ms.ms_create_time,
+        m.member_id,
+        m.nick_name,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_create_time,
+        mi.mi_saved_file_name,
+        mi.mi_origin_file_name
+        from(select ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select seq,
+        ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select rownum as seq,
+        ms_id,
+        target_id,
+        sender_id,
+        ms_message,
+        ms_create_time
+        from(select
+        ms.ms_id,
+        ms.target_id,
+        ms.sender_id,
+        ms.ms_message,
+        ms.ms_create_time
+        from lee.message ms
+        where ms.target_id = #{targetId}
+        order by ms_create_time desc
+        )
+        )
+        where seq <![CDATA[ >= #{startNum} ]]>
+        )
+        where rownum <![CDATA[ <= 12 ]]>
+        ) ms
+        JOIN LEE.MEMBER m ON ms.sender_id = m.member_id
+        JOIN Lee.member_images mi ON ms.sender_id = mi.member_id
+        order by ms.ms_create_time desc
+    </select>
+
+    <delete id="DeleteMessage">
+        delete from lee.message
+        where ms_id = #{msId}
+    </delete>
+
+    <select id="BoardNotifyCount" resultMap="NotifyCountDTO">
+        select contents,count(*) as cnt
+        from lee.board_report
+        where board_id = #{id}
+        group by contents
+    </select>
+
+    <select id="MyBoardComments" resultMap="BoardCommentDTO">
+        select *
+        from lee.board_comments
+        where member_id = #{id}
+    </select>
+
+    <resultMap id="BoardCommentDTO" type="marcat.board.dto.BoardCommentDTO">
+        <result property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="MessageDTO" type="marcat.myPage.dto.user.MessageDTO">
+        <result property="msId" column="ms_id"/>
+        <result property="recvId" column="target_id"/>
+        <result property="sendId" column="sender_id"/>
+        <result property="msMessage" column="ms_message"/>
+        <result property="msCreateTime" column="ms_create_time"/>
+    </resultMap>
+
+    <resultMap id="Message" type="marcat.members.vo.Message">
+        <id property="msId" column="ms_id"/>
+        <result property="targetId" column="target_id"/>
+        <result property="senderId" column="sender_id"/>
+        <result property="msMessage" column="ms_message"/>
+        <result property="msCreateTime" column="ms_create_time"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+    </resultMap>
+
+    <resultMap id="UserLinkMarketDTO" type="marcat.myPage.dto.user.UserLinkMarketDTO">
+        <result property="id" column="member_id"/>
+        <result property="uId" column="u_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="addr" column="adm_nm"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="title" column="g_title"/>
+        <result property="viewCount" column="g_view_count"/>
+        <result property="createTime" column="g_create_time"/>
+    </resultMap>
+
+    <resultMap id="UserLinkBoardDTO" type="marcat.myPage.dto.user.UserLinkBoardDTO">
+        <result property="id" column="member_id"/>
+        <result property="uId" column="u_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="addr" column="adm_nm"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="boardId" column="board_id"/>
+        <result property="title" column="title"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="UserLinkDTO" type="marcat.myPage.dto.user.UserLinkDTO">
+        <result property="id" column="member_id"/>
+        <result property="uId" column="u_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="addr" column="adm_nm"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+    </resultMap>
+
+<!--    <resultMap id="UserActivityMarketDTO" type="marcat.myPage.dto.user.UserActivityMarketDTO">-->
+<!--        <result property="goodsId" column="goods_id"/>-->
+<!--        <result property="title" column="g_title"/>-->
+<!--        <result property="viewCount" column="g_view_count"/>-->
+<!--        <result property="createTime" column="g_create_time"/>-->
+<!--    </resultMap>-->
+
+<!--    <resultMap id="UserActivityBoardDTO" type="marcat.myPage.dto.user.UserActivityBoardDTO">-->
+<!--        <result property="boardId" column="board_id"/>-->
+<!--        <result property="picture" column="saved_file_name"/>-->
+<!--        <result property="title" column="title"/>-->
+<!--        <result property="nickId" column="member_id"/>-->
+<!--        <result property="nick" column="nick_name"/>-->
+<!--        <result property="nickPicture" column="mi_saved_file_name"/>-->
+<!--        <result property="createTime" column="create_time"/>-->
+<!--    </resultMap>-->
+
+    <resultMap id="Member" type="marcat.members.vo.Member">
+        <id property="id" column="member_id"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="uId" column="u_id"/>
+        <result property="passwd" column="passwd"/>
+        <result property="name" column="name"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="phoneNum" column="phone_num"/>
+        <result property="createTime" column="create_time"/>
+        <result property="roleStatus" column="rolestatus"/>
+        <result property="activated" column="activated"/>
+        <result property="accessToken" column="access_token"/>
+        <result property="refreshToken" column="refresh_token"/>
+        <result property="kakaoEmail" column="kakao_email"/>
+    </resultMap>
+
+    <resultMap id="MemberImages" type="marcat.members.vo.MemberImages">
+        <id property="id" column="mi_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="originFileName" column="mi_origin_file_name"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="createTime" column="mi_create_time"/>
+    </resultMap>
+
+    <resultMap id="jusoDTO" type="marcat.members.dto.JusoDTO">
+        <id property="admCd8" column="ADM_CD8"/>
+        <result property="admNm" column="ADM_NM"/>
+    </resultMap>
+
+    <resultMap id="koreaArea" type="marcat.goods.vo.KoreaArea">
+        <id property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_nm"/>
+    </resultMap>
+
+    <resultMap id="RequestBuy" type="marcat.goods.vo.RequestBuy">
+        <id property="id" column="rb_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="memberId" column="request_member_id"/>
+        <result property="requestStatus" column="request_status"/>
+        <result property="rbCreateTime" column="rb_create_time"/>
+        <collection property="goodsImages" resultMap="GoodsImages"/>
+        <collection property="goods" resultMap="Goods"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="member" resultMap="Member"/>
+    </resultMap>
+
+    <resultMap id="Goods" type="marcat.goods.vo.Goods">
+        <id property="id" column="goods_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="categoryId" column="categories_id"/>
+        <result property="title" column="g_title"/>
+        <result property="contents" column="g_contents"/>
+        <result property="sellStatus" column="g_sell_status"/>
+        <result property="viewCount" column="g_view_count"/>
+        <result property="createTime" column="g_create_time"/>
+        <result property="price" column="g_price"/>
+        <result property="negoStatus" column="g_nego_status"/>
+        <result property="wishCount" column="g_wish_count"/>
+        <result property="status" column="g_status"/>
+        <result property="nickName" column="g_nick_name"/>
+        <collection property="goodsImages" resultMap="GoodsImages"/>
+        <collection property="categories" resultMap="categories"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+        <collection property="report" resultMap="report"/>
+    </resultMap>
+
+    <resultMap id="report" type="marcat.goods.vo.Report">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="contents" column="contents"/>
+    </resultMap>
+
+    <resultMap id="Board" type="marcat.board.vo.Board">
+        <result property="id" column="board_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+        <result property="wishCount" column="wish_count"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_Nm"/>
+        <collection property="boardImages" resultMap="BoardImages"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+        <collection property="boardReport" resultMap="boardReport"/>
+    </resultMap>
+
+    <resultMap id="boardReport" type="marcat.board.vo.BoardReport">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+    </resultMap>
+
+    <resultMap id="BoardImages" type="marcat.board.vo.BoardImages">
+        <id property="id" column="id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="originFileName" column="origin_file_name"/>
+        <result property="savedFileName" column="saved_file_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="BoardComment" type="marcat.board.vo.BoardComments">
+        <result property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <result property="admNm" column="adm_Nm"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="memberPicture" column="MI_SAVED_FILE_NAME"/>
+        <collection property="board" resultMap="Board"/>
+    </resultMap>
+
+    <resultMap id="Comments" type="marcat.goods.vo.GoodsComments">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <collection property="goods" resultMap="Goods"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+    </resultMap>
+
+    <resultMap id="GoodsImages" type="marcat.goods.vo.GoodsImages">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="originFileName" column="origin_file_name"/>
+        <result property="savedFileName" column="saved_file_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="categories" type="marcat.goods.vo.Categories">
+        <id property="id" column="categories_id"/>
+        <result property="name" column="name"/>
+    </resultMap>
+
+    <resultMap id="WishList" type="marcat.goods.vo.WishList">
+        <id property="id" column="wl_id"/>
+        <result property="memberId" column="wanted_member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="wlCreateTime" column="wl_create_time"/>
+        <collection property="goodsImages" resultMap="GoodsImages"/>
+        <collection property="goods" resultMap="Goods"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="member" resultMap="Member"/>
+    </resultMap>
+
+    <resultMap id="BoardWishList" type="marcat.board.vo.BoardWishList">
+        <id property="id" column="bwl_id"/>
+        <result property="memberId" column="b_wanted_member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="bwlCreateTime" column="bwl_create_time"/>
+        <collection property="boardImages" resultMap="BoardImages"/>
+        <collection property="board" resultMap="Board"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="member" resultMap="Member"/>
+    </resultMap>
+
+    <sql id="requestSearch">
+    <choose>
+        <when test="sellStatus != null and sellStatus != ''">
+            <if test="sellStatus == 'SELL'.toString()">
+                where ( g_sell_status = #{sellStatus} and member_id = #{id} )
+            </if>
+        </when>
+    </choose>
+    </sql>
+
+    <!-- 검색을 위한 조건 처리문 : list, totalCount에서 각각 사용한다. -->
+    <sql id="search">
+        <choose>
+            <when test="sellStatus != null and sellStatus != ''">
+                <if test="sellStatus == 'SELL'.toString()">
+                    where ( g_sell_status = #{sellStatus} and member_id = #{id} )
+                </if>
+                <if test="sellStatus == 'SOLD'.toString()">
+                    where ( g_sell_status = #{sellStatus} and member_id = #{id} )
+                </if>
+            </when>
+            <otherwise>
+                <if test="viewStatus == 'inactivity'.toString()">
+                    where ( g_status = #{viewStatus} and member_id = #{id})
+                </if>
+            </otherwise>
+        </choose>
+    </sql>
+
+
+
+
+</mapper>

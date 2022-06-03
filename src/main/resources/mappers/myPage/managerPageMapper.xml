@@ -1,0 +1,676 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.managerpage.dao.ManagerPageDAO">
+
+    <select id="LatelyGoods" resultMap="LatelyGoodsDTO">
+        select *
+        from (
+                 select m.nick_name, c.name,g.goods_id, g.g_title, g.g_view_count, g.g_create_time, g.g_price, g.g_wish_count
+                 from Lee.goods g
+                          join Lee.member m
+                               on g.member_id = m.member_id
+                          join Lee.categories c
+                               on g.categories_id = c.categories_id
+                 order by g.g_create_time desc)
+        where rownum<![CDATA[ <= ]]> 5
+    </select>
+
+    <select id="LatelyBoard" resultMap="LatelyBoardDTO">
+        select *
+        from (
+                 select m.nick_name, b.board_id,b.title, b.view_count, b.create_time
+                 from Lee.board b,
+                      Lee.member m
+                 where b.member_id = m.member_id
+                 order by b.create_time desc)
+        where rownum<![CDATA[ <= ]]> 5
+    </select>
+
+    <select id="MemberManagement" resultMap="MemberManagementDTO">
+        SELECT * FROM (
+        SELECT A.*,ROWNUM AS RNUM
+        FROM (
+        SELECT member_id, name, nick_name, activated, create_time
+        FROM Lee.member
+        <include refid="MemberSearch"></include>
+        ORDER BY create_time desc
+        ) A
+        WHERE rownum <![CDATA[ <= ]]> #{amount}
+        )
+        WHERE
+        rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="LatelyGoodsNotify" resultMap="LatelyNotifyDTO">
+        select m.nick_name, mm.nick_name as catch, r.contents
+        from Lee.report r
+                 join Lee.member m
+                      on r.member_id = m.member_id
+                 join Lee.goods g
+                      on r.goods_id = g.goods_id
+                 join Lee.member mm
+                      on g.member_id = mm.member_id
+        where rownum<![CDATA[ <= ]]> 5
+    </select>
+
+    <select id="LatelyBoardNotify" resultMap="LatelyNotifyDTO">
+        select m.nick_name, mm.nick_name as catch, r.contents
+        from Lee.board_report r
+                 join Lee.member m
+                      on r.member_id = m.member_id
+                 join Lee.board b
+                      on r.board_id = b.board_id
+                 join Lee.member mm
+                      on b.member_id = mm.member_id
+        where rownum<![CDATA[ <= ]]> 5
+    </select>
+
+    <select id="AdManagement" resultMap="AdDTO">
+        SELECT * FROM (
+        SELECT A.*,ROWNUM AS RNUM
+        FROM (
+        select c.id,
+        cg.name,
+        c.title,
+        c.create_time,
+        c.expiry_time,
+        c.view_status
+        from Lee.commercial c join
+        Lee.categories cg
+        on c.categories_id = cg.categories_id
+        <include refid="AdSearch"></include>
+        order by c.create_time desc
+        ) A
+        WHERE rownum <![CDATA[ <= ]]> #{amount}
+        )
+        WHERE
+        rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="AllGoodsNotify" resultMap="AllGoodsNotifyDTO">
+        select *
+        from (
+        select A.*, ROWNUM AS RNUM
+        from (
+        select m.nick_name,B.cnt, B.goods_id, g.g_title,g.g_create_time,g.g_status
+        from
+        (select count(*) as cnt, goods_id
+        from lee.report
+        group by goods_id) B
+        join lee.goods g
+        on g.goods_id = B.goods_id
+        join lee.member m
+        on g.member_id = m.member_id
+        <include refid="NotifySearch"></include>
+        ) A
+        where rownum <![CDATA[ <= ]]> #{amount}
+        )
+        where rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="AllBoardNotify" resultMap="AllBoardNotifyDTO">
+        select *
+        from (
+        select A.*, ROWNUM AS RNUM
+        from (
+        select m.nick_name,C.cnt, C.board_id, b.title,b.create_time,b.status
+        from
+        (select count(*) as cnt, board_id
+        from lee.board_report
+        group by board_id) C
+        join lee.board b
+        on b.board_id = C.board_id
+        join lee.member m
+        on b.member_id = m.member_id
+        <include refid="BoardNotifySearch"></include>
+        ) A
+        where rownum <![CDATA[ <= ]]> #{amount}
+        )
+        where rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="MemberProfile" resultMap="MemberProfileDTO">
+        select m.member_id,
+               m.name,
+               m.u_id,
+               m.nick_name,
+               m.phone_num,
+               k.adm_nm,
+               m.create_time,
+               m.activated,
+               m.rolestatus
+        from Lee.member m
+                 join Lee.koreaarea k
+                      on m.adm_cd8 = k.adm_cd8
+        where member_id = #{id}
+    </select>
+
+    <select id="MemberActivity" resultMap="MemberActivityDTO">
+        select g.gsum, gc.gcsum, b.bsum, bc.bcsum, w.wsum, r.rsum
+        from (select count(*) gsum from Lee.goods where member_id = #{id}) g
+           , (select count(*) gcsum from Lee.goods_comments where member_id = #{id}) gc
+           , (select count(*) bsum from Lee.board where member_id = #{id}) b
+           , (select count(*) bcsum from Lee.board_comments where member_id = #{id}) bc
+           , (select count(*) wsum from Lee.wish_list where wanted_member_id = #{id}) w
+           , (select count(*) rsum
+              from (select member_id from Lee.report union all select member_id from Lee.board_report)
+              where member_id = #{id}) r
+    </select>
+
+    <insert id="AddAd">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.commercial_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.commercial (id, categories_id, title, expiry_time,cm_origin_file_name,cm_saved_file_name,
+        view_status,cm_url) VALUES (#{id},
+        #{categoryId}, #{title}, #{expiryTime},#{originFileName},#{savedFileName}, 'ACTIVATION',#{url})
+    </insert>
+
+    <update id="AdActivation">
+        update LEE.commercial
+        set view_status = 'ACTIVATION'
+        where id = #{id}
+    </update>
+
+    <update id="AdInactive">
+        update LEE.commercial
+        set view_status = 'INACTIVE'
+        where id = #{id}
+    </update>
+
+    <delete id="DeleteAd">
+        delete
+        from LEE.commercial
+        where id = #{id}
+    </delete>
+
+    <update id="InactiveToActivation">
+        update LEE.goods
+        set g_status = 'ACTIVATION'
+        where goods_id = #{id}
+    </update>
+
+
+    <update id="ActivationToInactive">
+        update LEE.goods
+        set g_status = 'INACTIVE'
+        where goods_id = #{id}
+    </update>
+
+    <update id="BoardInactiveToActivation">
+        update LEE.board
+        set status = 'ACTIVATION'
+        where board_id = #{id}
+    </update>
+
+    <update id="BoardActivationToInactive">
+        update LEE.board
+        set status = 'INACTIVE'
+        where board_id = #{id}
+    </update>
+
+    <update id="SleepUser">
+        update LEE.member
+        set activated = 'INACTIVE'
+        where member_id = #{id}
+    </update>
+
+
+    <select id="CategoriesChart" resultMap="CategoriesChartDTO">
+        select c.name, count(*) as cnt
+        from (select * from lee.goods where categories_id <![CDATA[ < ]]> 3000) a
+                 join lee.categories c
+                      on a.categories_id = c.categories_id
+        group by name
+    </select>
+
+
+    <select id="MemberChart" resultMap="MemberChartDTO">
+        select A.acnt, B.bcnt, C.ccnt, D.dcnt, E.ecnt
+        from (select count(*) as acnt from lee.member where sysdate-28 > create_time) A,
+             (select count(*) as bcnt from lee.member where sysdate-21 > create_time) B,
+             (select count(*) as ccnt from lee.member where sysdate-14 > create_time) C,
+             (select count(*) as dcnt from lee.member where sysdate-7 > create_time) D,
+             (select count(*) as ecnt from lee.member where sysdate > create_time) E
+    </select>
+
+    <select id="AreaChart" resultMap="AreaChartDTO">
+        select cate, cnt
+        from (select k.sidonm               sido,
+                     c.name                 cate,
+                     count(g.categories_id) cnt
+              from lee.goods g
+                       join
+                   lee.koreaarea k
+                   on
+                       g.adm_cd8 = k.adm_cd8
+                       join
+                   lee.categories c
+                   on
+                       g.categories_id = c.categories_id
+              group by c.name, k.sidonm)
+        where sido = #{area}
+    </select>
+
+    <select id="MemberCnt" resultType="int">
+        select count(*) from lee.member
+        <include refid="MemberSearch"></include>
+    </select>
+
+    <select id="GoodsCnt" resultType="int">
+        select count(*)
+        from lee.goods g
+                 join lee.categories c
+                      on g.categories_id = c.categories_id
+                 join lee.koreaarea k
+                      on g.adm_cd8 = k.adm_cd8
+        <include refid="GoodsSearch"></include>
+    </select>
+
+    <select id="BoardCnt" resultType="int">
+        select count(*) from lee.board
+        <include refid="BoardSearch"></include>
+    </select>
+
+    <select id="GoodsNotifyCnt" resultType="int">
+        select count(*)
+        from
+        (select count(*) as cnt, goods_id
+        from lee.report
+        group by goods_id) B
+        join lee.goods g
+        on g.goods_id = B.goods_id
+        join lee.member m
+        on g.member_id = m.member_id
+        <include refid="NotifySearch"></include>
+    </select>
+
+    <select id="BoardNotifyCnt" resultType="int">
+        select count(*)
+        from
+        (select count(*) as cnt, board_id
+        from lee.board_report
+        group by board_id) C
+        join lee.board b
+        on b.board_id = C.board_id
+        join lee.member m
+        on b.member_id = m.member_id
+        <include refid="BoardNotifySearch"></include>
+    </select>
+
+    <select id="AdCnt" resultType="int">
+        select count(*)
+        from Lee.commercial c join
+        Lee.categories cg
+        on c.categories_id = cg.categories_id
+        <include refid="AdSearch"></include>
+    </select>
+
+    <select id="GoodsCntByDate" resultMap="DayDTO">
+        select a.cnt as a, b.cnt as b, c.cnt as c, d.cnt as d, e.cnt as e, f.cnt as f, g.cnt as g
+        from (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate, 'dd')) a
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 1, 'dd')) b
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 2, 'dd')) c
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 3, 'dd')) d
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 4, 'dd')) e
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 5, 'dd')) f
+           , (select count(*) cnt from lee.goods where trunc(g_create_time, 'dd') = trunc(sysdate - 6, 'dd')) g
+    </select>
+
+    <select id="BoardCntByDate" resultMap="DayDTO">
+        select a.cnt as a, b.cnt as b, c.cnt as c, d.cnt as d, e.cnt as e, f.cnt as f, g.cnt as g
+        from (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate, 'dd')) a
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 1, 'dd')) b
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 2, 'dd')) c
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 3, 'dd')) d
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 4, 'dd')) e
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 5, 'dd')) f
+           , (select count(*) cnt from lee.board where trunc(create_time, 'dd') = trunc(sysdate - 6, 'dd')) g
+    </select>
+
+    <select id="GoodsList" resultMap="GoodsListDTO">
+        select *
+        from (
+        select A.*, ROWNUM AS RNUM
+        from (
+        select g.goods_id,
+        c.name,
+        k.sidoNm,
+        g.g_nick_name,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_wish_count,
+        g.g_status
+        from lee.goods g
+        join lee.categories c
+        on g.categories_id = c.categories_id
+        join lee.koreaarea k
+        on g.adm_cd8 = k.adm_cd8
+        <include refid="GoodsSearch"></include>
+        order by g_create_time desc
+        ) A
+        where rownum <![CDATA[ <= ]]> #{amount}
+        )
+        where rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="BoardList" resultMap="BoardListDTO">
+        select *
+        from (
+        select A.*, ROWNUM AS RNUM
+        from (
+        select *
+        from lee.board
+        <include refid="BoardSearch"></include>
+        order by create_time desc
+        ) A
+        where rownum <![CDATA[ <= ]]> #{amount}
+        )
+        where rnum <![CDATA[ > ]]> #{start}
+    </select>
+
+    <select id="AdFileName" resultType="String">
+        select cm_saved_file_name
+        from LEE.commercial
+        where id= #{id}
+    </select>
+
+    <delete id="MemberDelete">
+        delete
+        from LEE.member
+        where member_id = #{id}
+    </delete>
+
+    <select id="AdView" resultMap="AdViewDTO">
+        select * from(
+        select cm_saved_file_name, cm_url, title
+        from lee.commercial
+        where view_status = 'ACTIVATION'
+        order by DBMS_RANDOM.VALUE
+        ) where rownum <![CDATA[ < ]]> 4
+    </select>
+
+    <select id="FindAd" resultMap="Commercial">
+        select *
+        from lee.commercial
+        where id = #{id}
+    </select>
+
+    <select id="NotifyView" resultMap="NotifyViewDTO">
+        select contents,count(*) as cnt
+        from lee.report
+        where goods_id = #{id}
+        group by contents
+    </select>
+
+    <select id="BoardNotifyView" resultMap="NotifyViewDTO">
+        select contents,count(*) as cnt
+        from lee.board_report
+        where board_id = #{id}
+        group by contents
+    </select>
+
+    <update id="UpdateAd">
+        update LEE.commercial
+        set categories_id = #{categoryId},
+            title = #{title},
+            expiry_time = #{expiryTime},
+            cm_origin_file_name = #{originFileName},
+            cm_saved_file_name = #{savedFileName},
+            cm_url = #{url}
+        where id = #{id}
+    </update>
+
+    <sql id="MemberSearch">
+        <if test="keyword != null">
+            <if test='search == "name"'>
+                where ( name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "nick_name"'>
+                where ( nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "activated"'>
+                where ( activated like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+    <sql id="NotifySearch">
+        <if test="keyword != null">
+            <if test='search == "nickname"'>
+                where ( m.nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "title"'>
+                where ( g.g_title like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "status"'>
+                where g.g_status = #{keyword}
+            </if>
+        </if>
+    </sql>
+
+    <sql id="BoardNotifySearch">
+        <if test="keyword != null">
+            <if test='search == "nickname"'>
+                where ( m.nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "title"'>
+                where ( b.title like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "status"'>
+                where b.status = #{keyword}
+            </if>
+        </if>
+    </sql>
+
+    <sql id="AdSearch">
+        <if test="keyword != null">
+            <if test='search == "name"'>
+                where ( cg.name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "title"'>
+                where ( c.title like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+
+    <sql id="GoodsSearch">
+        <if test="keyword != null">
+            <if test='search == "category"'>
+                where ( c.name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "admNm"'>
+                where ( k.adm_nm like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "nickname"'>
+                where ( g.nickname like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "status"'>
+                where ( g.status like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+    <sql id="BoardSearch">
+        <if test="keyword != null">
+            <if test='search == "nickname"'>
+                where ( nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "title"'>
+                where ( title like '%'||#{keyword}||'%' )
+            </if>
+            <if test='search == "status"'>
+                where ( status like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+
+    <resultMap id="LatelyGoodsDTO" type="marcat.managerpage.dto.LatelyGoodsDTO">
+        <result property="nickname" column="nick_name"/>
+        <result property="name" column="name"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="title" column="g_title"/>
+        <result property="viewCount" column="g_view_count"/>
+        <result property="createTime" column="g_create_time"/>
+        <result property="price" column="g_price"/>
+        <result property="wishCount" column="g_wish_count"/>
+    </resultMap>
+
+    <resultMap id="LatelyBoardDTO" type="marcat.managerpage.dto.LatelyBoardDTO">
+        <result property="nickname" column="nick_name"/>
+        <result property="title" column="title"/>
+        <result property="boardId" column="board_id"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="MemberManagementDTO" type="marcat.managerpage.dto.MemberManagementDTO">
+        <result property="memberId" column="member_id"/>
+        <result property="name" column="name"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="activated" column="activated"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="LatelyNotifyDTO" type="marcat.managerpage.dto.LatelyNotifyDTO">
+        <result property="reporter" column="nick_name"/>
+        <result property="nickname" column="catch"/>
+        <result property="contents" column="contents"/>
+    </resultMap>
+
+    <resultMap id="AdDTO" type="marcat.managerpage.dto.AdDTO">
+        <result property="id" column="id"/>
+        <result property="categoriesName" column="name"/>
+        <result property="title" column="title"/>
+        <result property="createTime" column="create_time"/>
+        <result property="expiryTime" column="expiry_time"/>
+        <result property="viewStatus" column="view_status"/>
+    </resultMap>
+
+    <resultMap id="AllGoodsNotifyDTO" type="marcat.managerpage.dto.AllNotifyDTO">
+        <result property="nickname" column="nick_name"/>
+        <result property="cnt" column="cnt"/>
+        <result property="id" column="goods_id"/>
+        <result property="title" column="g_title"/>
+        <result property="createTime" column="g_create_time"/>
+        <result property="status" column="g_status"/>
+    </resultMap>
+
+    <resultMap id="AllBoardNotifyDTO" type="marcat.managerpage.dto.AllNotifyDTO">
+        <result property="nickname" column="nick_name"/>
+        <result property="cnt" column="cnt"/>
+        <result property="id" column="board_id"/>
+        <result property="title" column="title"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="MemberProfileDTO" type="marcat.managerpage.dto.MemberProfileDTO">
+        <result property="id" column="member_id"/>
+        <result property="uId" column="u_id"/>
+        <result property="name" column="name"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="phoneNum" column="phone_num"/>
+        <result property="addr" column="adm_nm"/>
+        <result property="createTime" column="create_time"/>
+        <result property="activated" column="activated"/>
+        <result property="roleStatus" column="rolestatus"/>
+    </resultMap>
+
+    <resultMap id="MemberActivityDTO" type="marcat.managerpage.dto.MemberActivityDTO">
+        <result property="goodsSum" column="gsum"/>
+        <result property="goodsCommentSum" column="gcsum"/>
+        <result property="boardSum" column="bsum"/>
+        <result property="boardCommentSum" column="bcsum"/>
+        <result property="wishSum" column="wsum"/>
+        <result property="reportSum" column="rsum"/>
+    </resultMap>
+
+    <resultMap id="CategoriesChartDTO" type="marcat.managerpage.dto.CategoriesChartDTO">
+        <result property="name" column="name"/>
+        <result property="cnt" column="cnt"/>
+    </resultMap>
+
+    <resultMap id="MemberChartDTO" type="marcat.managerpage.dto.MemberChartDTO">
+        <result property="fourWeekAgo" column="Acnt"/>
+        <result property="threeWeekAgo" column="Bcnt"/>
+        <result property="twoWeekAgo" column="Ccnt"/>
+        <result property="oneWeekAgo" column="Dcnt"/>
+        <result property="week" column="Ecnt"/>
+    </resultMap>
+
+    <resultMap id="AreaChartDTO" type="marcat.managerpage.dto.AreaChartDTO">
+        <result property="cate" column="cate"/>
+        <result property="cnt" column="cnt"/>
+    </resultMap>
+
+    <resultMap id="DayDTO" type="marcat.managerpage.dto.DayDTO">
+        <result property="today" column="a"/>
+        <result property="oneAgo" column="b"/>
+        <result property="twoAgo" column="c"/>
+        <result property="threeAgo" column="d"/>
+        <result property="fourAgo" column="e"/>
+        <result property="fiveAgo" column="f"/>
+        <result property="sixAgo" column="g"/>
+    </resultMap>
+
+    <resultMap id="GoodsListDTO" type="marcat.managerpage.dto.GoodsListDTO">
+        <result property="id" column="goods_id"/>
+        <result property="category" column="name"/>
+        <result property="sidoNm" column="sidoNm"/>
+        <result property="nickName" column="g_nick_name"/>
+        <result property="title" column="g_title"/>
+        <result property="contents" column="g_contents"/>
+        <result property="sellStatus" column="g_sell_status"/>
+        <result property="viewCount" column="g_view_count"/>
+        <result property="createTime" column="g_create_time"/>
+        <result property="price" column="g_price"/>
+        <result property="wishCount" column="g_wish_count"/>
+        <result property="status" column="g_status"/>
+    </resultMap>
+
+
+    <resultMap id="BoardListDTO" type="marcat.managerpage.dto.MBoardListDTO">
+        <result property="id" column="board_id"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+        <result property="wishCount" column="wish_count"/>
+    </resultMap>
+
+    <resultMap id="AdViewDTO" type="marcat.managerpage.dto.AdViewDTO">
+        <result property="savedFileName" column="cm_saved_file_name"/>
+        <result property="title" column="title"/>
+        <result property="url" column="cm_url"/>
+    </resultMap>
+
+    <resultMap id="Commercial" type="marcat.goods.vo.Commercial">
+        <result property="id" column="id"/>
+        <result property="categoryId" column="categories_id"/>
+        <result property="title" column="title"/>
+        <result property="createTime" column="create_time"/>
+        <result property="viewStatus" column="view_status"/>
+        <result property="expiryTime" column="expiry_time"/>
+        <result property="viewStatus" column="view_status"/>
+        <result property="originFileName" column="cm_origin_file_name"/>
+        <result property="savedFileName" column="cm_saved_file_name"/>
+        <result property="url" column="cm_url"/>
+    </resultMap>
+
+    <resultMap id="NotifyViewDTO" type="marcat.managerpage.dto.NotifyViewDTO">
+        <result property="contents" column="contents"/>
+        <result property="cnt" column="cnt"/>
+    </resultMap>
+
+</mapper>

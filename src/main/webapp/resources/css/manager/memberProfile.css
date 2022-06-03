@@ -1,0 +1,119 @@
+.m-mp-wrap {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.m-mp-sidebar {
+    width: 15%;
+    border-right:1px solid #CCCED3;
+}
+
+.m-mp-content {
+    width: 100%;
+}
+
+h1 {
+    width: 100%;
+    text-align: center;
+}
+
+.mp-container {
+    display: flex;
+    margin: 0px 3%;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.mp-content-card-item1 {
+    height: 100%;
+    border-radius: 25px;
+    border: 1px outset #1fa5fd;
+    padding: 8px;
+    margin-bottom: 40px;
+}
+
+.mp-content-card-item2-layout {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.mp-content-card-item2 {
+    height: 70%;
+    border-radius: 25px;
+    border: 1px outset #1fa5fd;
+    padding: 8px;
+    margin-bottom: 40px;
+}
+
+.mp-btn {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mp-card-title {
+    color: black;
+    font-size: 21px;
+    font-style: italic;
+    text-align: center;
+}
+
+table {
+    width: 400px;
+    border: 0px;
+    border-collapse: separate;
+    border-spacing: 0px 30px;
+    font-family: sans-serif;
+    font-weight: 600;
+}
+
+table tr {
+    margin: 3% 0px;
+}
+
+.mp-table-left {
+    width: 50%;
+    text-align: left;
+}
+
+.mp-table-center {
+    width: 3%;
+    text-align: left;
+}
+
+.mp-table-right {
+    width: 47%;
+    text-align: center;
+}
+
+.mp-text {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.mp-text p {
+    font-family: sans-serif;
+    font-weight: 600;
+    margin: 5% 0;
+}
+
+button {
+    margin: 15% 3% 0px 3%;
+    width: 80px;
+    height: 30px;
+    border: 2px solid #1fa5fd;
+    font-family: "paybooc-Light", sans-serif;
+    text-decoration: none;
+    font-weight: 600;
+    color: black;
+    transition: all 1s;
+}
+
+button:hover {
+    background-color: #1fa5fd;
+    color: black;
+}
+

@@ -1,0 +1,720 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.goods.dao.GoodsDAO">
+
+    <select id="lastValue" resultMap="Goods">
+        SELECT g.goods_id,
+               g.member_id,
+               g.adm_cd8,
+               g.categories_id,
+               g.g_title,
+               g.g_contents,
+               g.g_sell_status,
+               g.g_view_count,
+               g.g_create_time,
+               g.g_price,
+               g.g_nego_status
+        FROM LEE.GOODS g
+        WHERE GOODS_ID = (SELECT MAX(goods_id) FROM LEE.GOODS WHERE MEMBER_ID = #{id})
+    </select>
+    <!-- Goods 최근 6개 정보 조회 -->
+    <select id="LatestSixGoods" resultMap="Goods">
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name,
+        gi.id,
+        gi.goods_id,
+        gi.origin_file_name,
+        gi.saved_file_name,
+        gi.create_time,
+        c.name,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        <if test="id != null and id != '' ">
+            ,
+            wl2.wl_id,
+            wl2.WANTED_MEMBER_ID,
+            wl2.GOODS_ID,
+            wl2.WL_CREATE_TIME
+        </if>
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        (SELECT count(*)
+        FROM LEE.WISH_LIST wl
+        WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM LEE.GOODS g
+        where g.g_status = 'ACTIVATION'
+        ORDER BY g.g_create_time DESC
+        ) g
+        WHERE rownum <![CDATA[ <= 6 ]]>
+        ) g
+        JOIN (SELECT distinct *
+        FROM LEE.GOODS_IMAGES
+        WHERE id NOT IN (SELECT gi.id
+        FROM LEE.GOODS_IMAGES gi
+        INNER JOIN LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi
+        on g.GOODS_ID = gi.GOODS_ID
+        JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+        JOIN LEE.MEMBER m on g.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID
+        <if test="id != null and id != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.WISH_LIST
+            WHERE WANTED_MEMBER_ID = #{id} ) wl2
+            on g.GOODS_ID = wl2.GOODS_ID
+        </if>
+        ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- Goods paging 정보 조회 -->
+    <select id="PagingGoods" resultMap="Goods">
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        g.g_wish_count,
+        g.g_status,
+        g.g_nick_name,
+        gi.id,
+        gi.goods_id,
+        gi.origin_file_name,
+        gi.saved_file_name,
+        gi.create_time,
+        c.name,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        <if test="id != null and id != '' ">
+            ,
+            wl2.wl_id,
+            wl2.WANTED_MEMBER_ID,
+            wl2.GOODS_ID,
+            wl2.WL_CREATE_TIME
+        </if>
+        FROM (
+        SELECT
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        goods_id,
+        member_id,
+        adm_cd8,
+        categories_id,
+        g_title,
+        g_contents,
+        g_sell_status,
+        g_view_count,
+        g_create_time,
+        g_price,
+        g_nego_status,
+        g_wish_count,
+        g_status,
+        g_nick_name
+        FROM (
+        SELECT g.goods_id,
+        g.member_id,
+        g.adm_cd8,
+        g.categories_id,
+        g.g_title,
+        g.g_contents,
+        g.g_sell_status,
+        g.g_view_count,
+        g.g_create_time,
+        g.g_price,
+        g.g_nego_status,
+        (SELECT count(*)
+        FROM LEE.WISH_LIST wl
+        WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+        g.g_status,
+        g.g_nick_name
+        FROM LEE.GOODS g
+        <include refid="search"></include>
+        <if test="categories != null and categories != '' ">and categories_id = #{categories}</if>
+        <if test="koreaArea != null and koreaArea != '' ">and adm_cd8 = #{koreaArea}</if>
+        AND g.g_status = 'ACTIVATION'
+        ORDER BY g.g_create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        ) WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) g
+        JOIN (SELECT DISTINCT * FROM LEE.GOODS_IMAGES WHERE id NOT IN (SELECT gi.id FROM LEE.GOODS_IMAGES gi INNER JOIN
+        LEE.GOODS_IMAGES gi2 ON gi.GOODS_ID = gi2.GOODS_ID AND gi.id > gi2.ID)) gi on g.GOODS_ID = gi.GOODS_ID
+        JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+        JOIN LEE.MEMBER m on g.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID
+        <if test="id != null and id != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.WISH_LIST
+            WHERE WANTED_MEMBER_ID = #{id} ) wl2
+            on g.GOODS_ID = wl2.GOODS_ID
+        </if>
+        ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- id를 통한 goods 조회 -->
+    <select id="FindGoodsWithId" resultMap="Goods">
+        SELECT g.goods_id,
+               g.member_id,
+               g.adm_cd8,
+               g.categories_id,
+               g.g_title,
+               g.g_contents,
+               g.g_sell_status,
+               g.g_view_count,
+               g.g_create_time,
+               g.g_price,
+               g.g_nego_status,
+               (SELECT count(*) FROM LEE.WISH_LIST wl WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+               g.g_status,
+               g.g_nick_name,
+               gi.id,
+               gi.goods_id,
+               gi.origin_file_name,
+               gi.saved_file_name,
+               gi.create_time,
+               c.name,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_id,
+               mi.member_id,
+               mi.mi_origin_file_name,
+               mi.mi_saved_file_name
+        <if test="memberId != null and memberId != '' ">
+            ,
+            wl2.wl_id,
+            wl2.WANTED_MEMBER_ID,
+            wl2.GOODS_ID,
+            wl2.WL_CREATE_TIME,
+            gr.id,
+            gr.MEMBER_ID,
+            gr.GOODS_ID,
+            gr.CONTENTS,
+            buy.rb_id,
+            buy.goods_id,
+            buy.request_member_id,
+            buy.request_status,
+            buy.rb_create_time
+        </if>
+        FROM LEE.GOODS g
+                 JOIN LEE.GOODS_IMAGES gi on g.GOODS_ID = gi.GOODS_ID
+                 JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+                 JOIN LEE.MEMBER m on g.member_id = m.member_id
+                 JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+                 JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID
+        <if test="memberId != null and memberId != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.WISH_LIST
+            WHERE WANTED_MEMBER_ID = #{memberId} ) wl2
+            on g.GOODS_ID = wl2.GOODS_ID
+            LEFT JOIN (SELECT *
+            FROM LEE.REPORT
+            WHERE member_id = #{memberId} ) gr
+            on g.GOODS_ID = gr.GOODS_ID
+            LEFT JOIN (SELECT *
+            FROM LEE.request_buy
+            WHERE request_member_id = #{memberId} ) buy
+            on g.GOODS_ID = buy.GOODS_ID
+        </if>
+        where g.GOODS_ID = #{goodsId}
+    </select>
+
+
+    <!-- member_id를 통한 goods 조회 -->
+    <select id="FindGoodsWithMemberId" resultMap="Goods">
+        SELECT g.goods_id,
+               g.member_id,
+               g.adm_cd8,
+               g.categories_id,
+               g.g_title,
+               g.g_contents,
+               g.g_sell_status,
+               g.g_view_count,
+               g.g_create_time,
+               g.g_price,
+               g.g_nego_status,
+               (SELECT count(*) FROM LEE.WISH_LIST wl WHERE wl.GOODS_ID = g.GOODS_ID) as g_wish_count,
+               g.g_status,
+               g.g_nick_name,
+               gi.id,
+               gi.goods_id,
+               gi.origin_file_name,
+               gi.saved_file_name,
+               gi.create_time,
+               c.name,
+               m.nick_name,
+               k.adm_nm,
+               mi.mi_id,
+               mi.member_id,
+               mi.mi_origin_file_name,
+               mi.mi_saved_file_name
+        FROM LEE.GOODS g
+                 JOIN LEE.GOODS_IMAGES gi on g.GOODS_ID = gi.GOODS_ID
+                 JOIN LEE.CATEGORIES c on g.categories_id = c.categories_id
+                 JOIN LEE.MEMBER m on g.member_id = m.member_id
+                 JOIN LEE.KOREAAREA k on g.adm_cd8 = k.adm_cd8
+                 JOIN LEE.MEMBER_IMAGES mi ON g.MEMBER_ID = mi.MEMBER_ID
+        where g.MEMBER_ID = #{memberId}
+        ORDER BY g.g_create_time DESC
+    </select>
+
+    <!-- memberId를 통한 comments 조회 -->
+    <select id="FindCommentsWithMemberId" resultMap="Comments">
+        select *
+        from LEE.GOODS_COMMENTS
+        where MEMBER_ID = #{memberId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- goodsId를 통한 comments 조회 -->
+    <select id="FindCommentsWithId" resultMap="Comments">
+        SELECT gc.goods_id,
+               gc.member_id,
+               gc.contents,
+               gc.create_time,
+               m.nick_name,
+               mi.mi_saved_file_name
+        FROM LEE.GOODS_COMMENTS gc
+                 JOIN LEE.MEMBER m on gc.member_id = m.member_id
+                 JOIN LEE.MEMBER_IMAGES mi ON gc.MEMBER_ID = mi.MEMBER_ID
+        where gc.GOODS_ID = #{goodsId}
+        ORDER BY gc.create_time DESC
+    </select>
+
+    <insert id="InsertComments">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.goods_comments_seq.nextval from dual
+        </selectKey>
+        insert into LEE.GOODS_COMMENTS (id, member_id, goods_id, contents, create_time)
+        values (#{id}, #{memberId}, #{goodsId}, #{contents}, default)
+    </insert><!-- create_time 값 빠짐 -->
+
+
+    <!-- goodsId를 통한 GoodsImages 조회 -->
+    <select id="FindImagesWithId" resultMap="GoodsImages">
+        select *
+        from LEE.GOODS_IMAGES
+        where GOODS_ID = #{goodsId}
+    </select>
+
+    <!-- member_id로 wish_list 중복 확인 -->
+    <select id="DupleWishList" resultType="int">
+        SELECT count(*)
+        FROM LEE.WISH_LIST
+        WHERE member_id = #{memberId}
+          AND goods_id = #{goodsId}
+    </select>
+
+    <select id="FindGoodsByKeyword" resultMap="Goods">
+        select *
+        from LEE.GOODS
+        where TITLE = '%' || #{keyword} || '%'
+    </select>
+
+    <delete id="deleteGoods">
+        DELETE
+        FROM LEE.GOODS
+        WHERE goods_id = #{id}
+    </delete>
+
+    <insert id="InsertGoods">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.goods_seq.nextval from dual
+        </selectKey>
+        insert into LEE.GOODS (goods_id, member_id, adm_cd8, categories_id, g_title, g_contents, g_sell_status,
+        g_view_count,g_create_time ,g_price, g_nego_status,g_wish_count,g_status,g_nick_name)
+        values (#{id}, #{memberId}, #{admCd8}, #{categoryId}, #{title}, #{contents}, #{sellStatus}, default, default,
+        #{price}, #{negoStatus}, default, default, #{nickName})
+    </insert><!-- create_time 값 빠짐 -->
+
+    <insert id="InsertImages">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.goods_images_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.goods_images (id, goods_id, origin_file_name, saved_file_name, create_time)
+        VALUES (#{id} , #{goodsId}, #{originFileName}, #{savedFileName}, #{createTime})
+    </insert>
+
+    <select id="GoodsImageFindbyId" resultMap="GoodsImages">
+        select *
+        from LEE.GoodsImages
+        where goods_id = #{goodsId}
+    </select>
+
+    <select id="categoriesList" resultMap="categories">
+        SELECT *
+        FROM LEE.categories
+        ORDER BY categories_id
+    </select>
+
+    <select id="oneCate" resultMap="categories">
+        select *
+        from LEE.categories
+        where CATEGORIES_ID = #{id}
+    </select>
+
+    <update id="remakeGoods">
+        UPDATE LEE.GOODS
+        SET g_title       = #{title},
+            g_contents    = #{contents},
+            g_price       = #{price},
+            CATEGORIES_ID = #{categoryId},
+            g_NEGO_STATUS = #{negoStatus}
+        WHERE goods_id = #{id}
+    </update>
+
+    <update id="remakeGoodsImage">
+        UPDATE LEE.GOODS_IMAGES
+        SET ORIGIN_FILE_NAME = #{originFileName},
+            saved_file_name=#{savedFileName}
+        WHERE GOODS_ID = #{goodsId}
+    </update>
+
+    <delete id="fileDelete">
+        DELETE
+        FROM LEE.GOODS_IMAGES
+        WHERE SAVED_FILE_NAME = #{savedFileName}
+    </delete>
+
+    <!-- 검색을 위한 조건 처리문 : list, totalCount에서 각각 사용한다. -->
+    <sql id="search">
+        <if test="searchType != null">
+            <if test="searchType == 't'.toString()">
+                where ( g_title like '%'||#{keyword}||'%' )
+            </if>
+            <if test="searchType == 'w'.toString()">
+                where ( g_nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test="searchType == 'tw'.toString()">
+                where ( g_title like '%'||#{keyword}||'%'
+                or g_nick_name like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+    <resultMap id="Goods" type="marcat.goods.vo.Goods">
+        <id property="id" column="goods_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="categoryId" column="categories_id"/>
+        <result property="title" column="g_title"/>
+        <result property="contents" column="g_contents"/>
+        <result property="sellStatus" column="g_sell_status"/>
+        <result property="viewCount" column="g_view_count"/>
+        <result property="createTime" column="g_create_time"/>
+        <result property="price" column="g_price"/>
+        <result property="negoStatus" column="g_nego_status"/>
+        <result property="wishCount" column="g_wish_count"/>
+        <result property="status" column="g_status"/>
+        <result property="nickName" column="g_nick_name"/>
+        <collection property="goodsImages" resultMap="GoodsImages"/>
+        <collection property="categories" resultMap="categories"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+        <collection property="wishList" resultMap="WishList"/>
+        <collection property="report" resultMap="report"/>
+        <collection property="requestBuy" resultMap="buyRequest"/>
+    </resultMap>
+
+    <resultMap id="WishList" type="marcat.goods.vo.WishList">
+        <id property="id" column="wl_id"/>
+        <result property="memberId" column="wanted_member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="wlCreateTime" column="wl_create_time"/>
+    </resultMap>
+
+    <resultMap id="Comments" type="marcat.goods.vo.GoodsComments">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <collection property="goods" resultMap="Goods"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+    </resultMap>
+
+    <select id="PagingGoodsComment" resultMap="Comments">
+        SELECT gc.id,
+               gc.member_id,
+               gc.goods_id,
+               gc.contents,
+               gc.create_time,
+               mi.mi_saved_file_name,
+               m.nick_name
+        FROM (
+                 SELECT id,
+                        member_id,
+                        goods_id,
+                        contents,
+                        create_time
+                 FROM (
+                          SELECT SEQ,
+                                 id,
+                                 member_id,
+                                 goods_id,
+                                 contents,
+                                 create_time
+                          FROM (
+                                   SELECT ROWNUM AS SEQ,
+                                          id,
+                                          member_id,
+                                          goods_id,
+                                          contents,
+                                          create_time
+                                   FROM (
+                                            SELECT gc.id,
+                                                   gc.member_id,
+                                                   gc.goods_id,
+                                                   gc.contents,
+                                                   gc.create_time
+                                            FROM LEE.GOODS_COMMENTS gc
+                                            where gc.goods_id = #{id}
+                                            ORDER BY gc.create_time DESC
+                                        )
+                               )
+                          WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )
+                 WHERE ROWNUM <![CDATA[ <= 12 ]]>
+        ) gc
+                 JOIN LEE.MEMBER m on gc.member_id = m.member_id
+                 JOIN LEE.MEMBER_IMAGES mi ON gc.MEMBER_ID = mi.MEMBER_ID
+        ORDER BY gc.create_time DESC
+    </select>
+
+    <select id="selectOneMarketComments" resultMap="Comments">
+        select *
+        from LEE.goods_comments gc
+        WHERE gc.id = #{id}
+    </select>
+
+    <delete id="deleteMarketComments">
+        DELETE
+        FROM LEE.GOODS_COMMENTS gc
+        WHERE gc.id = #{id}
+    </delete>
+
+    <update id="updateMarketComments">
+        UPDATE LEE.GOODS_COMMENTS gc
+        SET gc.contents = #{content}
+        WHERE gc.ID = #{id}
+    </update>
+
+    <resultMap id="GoodsImages" type="marcat.goods.vo.GoodsImages">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="originFileName" column="origin_file_name"/>
+        <result property="savedFileName" column="saved_file_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="wish" type="marcat.goods.vo.WishList">
+        <id property="id" column="wl_id"/>
+        <result property="memberId" column="wanted_member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="wlCreateTime" column="wl_create_time"/>
+        <collection property="goodsImages" resultMap="GoodsImages"/>
+        <collection property="goods" resultMap="Goods"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="member" resultMap="Member"/>
+    </resultMap>
+
+
+
+    <insert id="plusWish">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.wish_list_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.wish_list (wl_id, goods_id, wanted_member_id, wl_create_time)
+        VALUES (#{id} , #{goodsId}, #{memberId}, #{wlCreateTime})
+    </insert>
+
+    <delete id="deleteWish">
+        DELETE
+        FROM LEE.wish_list
+        where goods_id = #{goodsId}
+          AND wanted_member_id = #{memberId}
+    </delete>
+
+    <select id="findWish" resultMap="wish">
+        SELECT *
+        FROM LEE.wish_list
+        WHERE goods_id = #{goodsId}
+          AND wanted_member_id = #{memberId}
+    </select>
+
+    <resultMap id="categories" type="marcat.goods.vo.Categories">
+        <id property="id" column="categories_id"/>
+        <result property="name" column="name"/>
+    </resultMap>
+
+    <resultMap id="report" type="marcat.goods.vo.Report">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="contents" column="contents"/>
+    </resultMap>
+
+    <select id="oneReport" resultMap="report">
+        SELECT *
+        FROM LEE.report
+        WHERE goods_id = #{goodsId}
+          AND member_id = #{memberId}
+    </select>
+
+    <insert id="sendReport">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.report_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.report (id, goods_id, member_id, contents)
+        VALUES (#{id} , #{goodsId}, #{memberId}, #{contents})
+    </insert>
+
+    <delete id="removeReport">
+        DELETE
+        FROM LEE.report
+        WHERE goods_id = #{goodsId}
+          AND member_id = #{memberId}
+    </delete>
+
+    <resultMap id="buyRequest" type="marcat.goods.vo.RequestBuy">
+        <id property="id" column="rb_id"/>
+        <result property="memberId" column="request_member_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="requestStatus" column="request_status"/>
+        <result property="rbCreateTime" column="rb_create_time"/>
+    </resultMap>
+
+    <select id="findBuyRequest" resultMap="buyRequest">
+        SELECT *
+        FROM LEE.request_buy
+        WHERE goods_id = #{goodsId}
+          AND request_member_id = #{memberId}
+    </select>
+
+    <insert id="sendRequest">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.request_buy_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.request_buy (rb_id, goods_id, request_member_id, request_status, rb_create_time)
+        VALUES (#{id} , #{goodsId}, #{memberId}, #{requestStatus}, default)
+    </insert>
+
+    <resultMap id="koreaArea" type="marcat.goods.vo.KoreaArea">
+        <id property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_nm"/>
+    </resultMap>
+
+    <resultMap id="Member" type="marcat.members.vo.Member">
+        <id property="id" column="member_id"/>
+        <result property="nickName" column="nick_name"/>
+    </resultMap>
+
+    <resultMap id="MemberImages" type="marcat.members.vo.MemberImages">
+        <id property="id" column="mi_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="originFileName" column="mi_origin_file_name"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="createTime" column="mi_create_time"/>
+    </resultMap>
+
+    <resultMap id="img_insert" type="marcat.goods.vo.GoodsImages">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="originFileName" column="origin_file_name"/>
+        <result property="savedFileName" column="saved_file_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <update id="viewCountUp">
+        UPDATE LEE.GOODS
+        SET g_view_count = nvl(g_view_count, 0) + 1
+        WHERE goods_id = #{id}
+    </update>
+</mapper>

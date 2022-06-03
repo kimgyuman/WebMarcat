@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.board.dao.BoardDAO">
+
+    <!-- Board 정보 전체 조회 -->
+    <select id="AllBoard" resultMap="Board">
+        SELECT b.board_id,
+               b.member_id,
+               b.title,
+               b.contents,
+               b.view_count,
+               b.create_time,
+               b.status,
+               (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+               b.nick_name,
+               b.adm_cd8,
+               m.nick_name,
+               k.adm_nm
+        FROM LEE.BOARD b
+                 JOIN LEE.MEMBER m on b.member_id = m.member_id
+                 JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+    </select>
+
+    <select id="LatestFourBoard" resultMap="Board">
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        b.wish_count,
+        b.nick_name,
+        b.adm_cd8,
+        bi.id,
+        bi.board_id,
+        bi.origin_file_name,
+        bi.saved_file_name,
+        bi.create_time,
+        m.nick_name,
+        mi.mi_saved_file_name
+        <if test="id != null and id != '' ">
+            ,
+            bwl2.bwl_id,
+            bwl2.b_WANTED_MEMBER_ID,
+            bwl2.board_ID,
+            bwl2.bWL_CREATE_TIME
+        </if>
+        FROM (
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        b.wish_count,
+        b.nick_name,
+        b.adm_cd8
+        FROM (
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8
+        FROM LEE.BOARD b
+        WHERE b.status = 'ACTIVATION'
+        ORDER BY b.create_time DESC
+        ) b
+        WHERE rownum <![CDATA[ <= 4 ]]>
+        ) b
+        JOIN (SELECT distinct *
+        FROM LEE.BOARD_IMAGES
+        WHERE id NOT IN (SELECT bi.id
+        FROM LEE.BOARD_IMAGES bi
+        INNER JOIN LEE.BOARD_IMAGES bi2 ON bi.BOARD_ID = bi2.BOARD_ID AND bi.id > bi2.ID)) bi
+        on b.BOARD_ID = bi.BOARD_ID
+        JOIN LEE.MEMBER m on b.member_id = m.member_id
+        JOIN LEE.MEMBER_IMAGES mi ON b.MEMBER_ID = mi.MEMBER_ID
+        <if test="id != null and id != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.board_WISH_LIST
+            WHERE b_WANTED_MEMBER_ID = #{id} ) bwl2
+            on b.board_id = bwl2.board_id
+        </if>
+        ORDER BY b.create_time DESC
+    </select>
+
+    <!-- Board paging 정보 조회 -->
+    <select id="PagingBoard" resultMap="Board">
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8,
+        bi.id,
+        bi.board_id,
+        bi.origin_file_name,
+        bi.saved_file_name,
+        bi.create_time,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        <if test="id != null and id != '' ">
+            ,
+            bwl2.bwl_id,
+            bwl2.b_WANTED_MEMBER_ID,
+            bwl2.board_ID,
+            bwl2.BWL_CREATE_TIME
+        </if>
+        FROM (
+        SELECT
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT SEQ,
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT ROWNUM AS SEQ,
+        board_id,
+        member_id,
+        title,
+        contents,
+        view_count,
+        create_time,
+        status,
+        wish_count,
+        nick_name,
+        adm_cd8
+        FROM (
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8
+        FROM LEE.BOARD b
+        <include refid="search"></include>
+        <if test="categories != null and categories != '' ">and categories_id = #{categories}</if>
+        <if test="koreaArea != null and koreaArea != '' ">and adm_cd8 = #{koreaArea}</if>
+        ORDER BY b.create_time DESC
+        )
+        )
+        WHERE SEQ <![CDATA[ >= #{startNum} ]]>
+        )WHERE ROWNUM <![CDATA[ <= 6 ]]>
+        ) b
+        JOIN LEE.BOARD_IMAGES bi on b.BOARD_ID = bi.BOARD_ID
+        JOIN LEE.MEMBER m on b.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+        JOIN LEE.MEMBER_IMAGES mi ON b.MEMBER_ID = mi.MEMBER_ID
+        <if test="id != null and id != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.BOARD_WISH_LIST
+            WHERE b_WANTED_MEMBER_ID = #{id} ) bwl2
+            on b.board_id = bwl2.board_id
+        </if>
+
+        ORDER BY b.create_time DESC
+    </select>
+
+    <!-- id를 통한 board 조회 -->
+    <select id="FindBoardWithId" resultMap="Board">
+        SELECT b.board_id,
+        b.member_id,
+        b.title,
+        b.contents,
+        b.view_count,
+        b.create_time,
+        b.status,
+        (SELECT count(*) FROM LEE.BOARD_WISH_LIST bwl WHERE bwl.BOARD_ID = b.BOARD_ID) as wish_count,
+        b.nick_name,
+        b.adm_cd8,
+        m.nick_name,
+        k.adm_nm,
+        mi.mi_id,
+        mi.member_id,
+        mi.mi_origin_file_name,
+        mi.mi_saved_file_name
+        <if test="memberId != null and memberId != '' ">
+            ,
+            bwl2.bwl_id,
+            bwl2.b_WANTED_MEMBER_ID,
+            bwl2.board_ID,
+            bwl2.BWL_CREATE_TIME,
+            br.id,
+            br.MEMBER_ID,
+            br.BOARD_ID,
+            br.CONTENTS
+        </if>
+        FROM LEE.BOARD b
+        JOIN LEE.MEMBER m on b.member_id = m.member_id
+        JOIN LEE.KOREAAREA k on b.adm_cd8 = k.adm_cd8
+        join lee.member_images mi on b.member_id = mi.member_id
+        <if test="memberId != null and memberId != '' ">
+            LEFT JOIN (SELECT *
+            FROM LEE.BOARD_WISH_LIST
+            WHERE B_WANTED_MEMBER_ID = #{memberId} ) bwl2
+            on b.board_id = bwl2.board_id
+            LEFT JOIN (SELECT *
+            FROM LEE.BOARD_REPORT
+            WHERE member_id = #{memberId} ) br
+            on b.board_ID = br.board_ID
+        </if>
+        where b.BOARD_ID = #{id}
+        order by b.create_time DESC
+    </select>
+
+    <!-- boardId 통한 comments 조회 -->
+    <select id="FindCommentsWithId" resultMap="BoardComment">
+        select bc.id,
+               bc.MEMBER_ID,
+               bc.BOARD_ID,
+               bc.CONTENTS,
+               bc.CREATE_TIME,
+               k.ADM_NM,
+               m.NICK_NAME,
+               mi.MI_SAVED_FILE_NAME
+        from LEE.BOARD_COMMENTS bc
+                 JOIN lee.MEMBER m ON bc.MEMBER_ID = m.MEMBER_ID
+                 JOIN lee.KOREAAREA k ON k.ADM_CD8 = m.ADM_CD8
+                 JOIN LEE.MEMBER_IMAGES mi ON bc.MEMBER_ID = mi.MEMBER_ID
+        where BOARD_ID = #{boardId}
+        order by bc.create_time
+    </select>
+
+    <!-- boardId 통한 BoardImages 조회 -->
+    <select id="FindImagesWithId" resultMap="BoardImages">
+        select *
+        from LEE.BOARD_IMAGES
+        where BOARD_ID = #{boardId}
+    </select>
+
+    <!-- member_id로 board_wish_list 중복 확인 -->
+    <select id="DupleWishList" resultType="int">
+        SELECT count(*)
+        FROM LEE.BOARD_WISH_LIST
+        WHERE member_id = #{memberId}
+          AND BOARD_ID = #{boardId}
+    </select>
+
+    <!-- board update-->
+    <update id="updateBoard" parameterType="marcat.board.vo.Board">
+        update lee.board
+        set title    = #{title},
+            contents = #{contents}
+        where board_id = #{id}
+    </update>
+
+    <update id="updateBoardImage">
+        update lee.board_images
+        set origin_file_name= #{originFileName},
+            saved_file_name=#{savedFileName}
+        where board_id = #{boardId}
+    </update>
+
+    <delete id="deleteFile">
+        delete
+        from lee.board_images
+        where saved_file_name = #{savedFileName}
+    </delete>
+
+    <delete id="deleteBoard" parameterType="marcat.board.vo.Board">
+        delete
+        from lee.board
+        where board_id = #{id}
+    </delete>
+
+
+    <!--    board insert-->
+    <insert id="insertBoard">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.board_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.board (board_id, member_id, title,
+        contents,view_count,create_time,status,wish_count,nick_name,adm_cd8) VALUES (#{id} , #{memberId}, #{title},
+        #{contents},default,sysdate,default,default,#{nickname},#{admCd8})
+    </insert>
+
+    <select id="lastValue" resultMap="Board">
+        SELECT b.BOARD_ID,
+               b.MEMBER_ID,
+               b.TITLE,
+               b.contents,
+               b.VIEW_COUNT,
+               b.CREATE_TIME,
+               b.STATUS,
+               b.NICK_NAME
+        FROM LEE.board b
+        WHERE board_ID = (SELECT MAX(board_id) FROM LEE.board WHERE MEMBER_ID = #{id})
+    </select>
+
+
+    <insert id="InsertImages">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.board_images_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.board_images (id, board_id, origin_file_name, saved_file_name, create_time)
+        VALUES (#{id} , #{boardId}, #{originFileName}, #{savedFileName}, #{createTime})
+    </insert>
+    <!--    board list 목록 출력-->
+    <select id="boardList" resultMap="boardAllList">
+        select b.board_id,
+               m.member_id,
+               b.contents,
+               b.title,
+               m.nick_name,
+               k.adm_nm,
+               b.create_time,
+               b.status
+        from Lee.member m
+                 join Lee.board b
+                      on b.member_id = m.member_id
+                 join Lee.koreaarea k
+                      on m.adm_cd8 = k.adm_cd8
+    </select>
+    <!--member_id로 member의 상세정보 조회-->
+    <select id="CommentMember" resultMap="CommentMember">
+        SELECT m.nick_name, k.adm_nm, mi.MI_SAVED_FILE_NAME,
+        FROM lee.MEMBER m
+                 JOIN lee.koreaarea k ON m.ADM_CD8 = k.ADM_CD8
+                 JOIN LEE.MEMBER_IMAGES mi ON m.MEMBER_ID = mi.MEMBER_ID
+        WHERE m.member_id = #{memberId}
+    </select>
+
+    <!--  comment_id로 검색  -->
+    <select id="oneComment" resultMap="BoardComment">
+        SELECT bc.id,
+               bc.MEMBER_ID,
+               bc.BOARD_ID,
+               bc.CONTENTS,
+               bc.CREATE_TIME,
+               k.ADM_NM,
+               m.NICK_NAME,
+               mi.MI_SAVED_FILE_NAME
+        FROM LEE.BOARD_COMMENTS bc
+                 JOIN lee.MEMBER m ON bc.MEMBER_ID = m.MEMBER_ID
+                 JOIN lee.KOREAAREA k ON k.ADM_CD8 = m.ADM_CD8
+                 JOIN LEE.MEMBER_IMAGES mi ON bc.MEMBER_ID = mi.MEMBER_ID
+        WHERE bc.id = (SELECT MAX(id)
+                       FROM LEE.BOARD_COMMENTS bc2
+                       WHERE bc2.MEMBER_ID = #{memberId} AND bc2.BOARD_ID = #{boardId})
+    </select>
+
+    <select id="oneCommentById" resultMap="BoardComment">
+        SELECT *
+        FROM LEE.BOARD_COMMENTS
+        WHERE id = #{id}
+    </select>
+
+    <!--  board_id를 통한 게시글 상세 조회  -->
+    <select id="detailBoard" resultMap="Board">
+        SELECT b.board_id,
+               b.member_id,
+               b.title,
+               b.contents,
+               b.view_count,
+               b.create_time,
+               b.status,
+               b.wish_count,
+               b.nick_name,
+               k.adm_nm
+        FROM lee.board b
+                 JOIN lee.MEMBER M
+                      ON b.MEMBER_ID = m.member_id
+                 JOIN lee.KOREAAREA k
+                      ON m.adm_cd8 = k.adm_cd8
+        WHERE b.board_id = #{id}
+    </select>
+    <!--comment 관련 mapper-->
+    <!--    <insert id = "createComment" parameterType="marcat.board.vo.BoardComments">-->
+    <!--        insert into lee.board_comment(id, member_id, boards_id, contents, create_time)-->
+    <!--        values(-->
+    <!--               #{id},-->
+    <!--               #{memberId},-->
+    <!--               #{boardId},-->
+    <!--               #{contents},-->
+    <!--               sysdate-->
+    <!--              )-->
+    <!--    </insert>-->
+
+    <insert id="createComment">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.board_comments_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.board_comments (id, member_id, board_id, contents, create_time)
+        VALUES (#{id},
+        #{memberId},
+        #{boardId},
+        #{contents},
+        sysdate
+        )
+    </insert>
+
+    <update id="updateComment" parameterType="marcat.board.vo.BoardComments">
+        update lee.board_comments
+        set contents    = #{contents},
+            create_time = sysdate
+        where id = #{id}
+          and member_id = #{memberId}
+    </update>
+
+    <delete id="deleteComment" parameterType="marcat.board.vo.BoardComments">
+        DELETE
+        FROM lee.board_comments
+        WHERE id = #{id}
+    </delete>
+
+
+    <!--    wish     -->
+    <insert id="plusWish">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.board_wish_list_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.board_wish_list (bwl_id, b_wanted_member_id, board_id, bwl_create_time)
+        VALUES (#{id} , #{memberId}, #{boardId}, #{bwlCreateTime})
+    </insert>
+
+    <delete id="deleteWish">
+        DELETE
+        FROM LEE.board_wish_list
+        where board_id = #{boardId}
+          AND b_wanted_member_id = #{memberId}
+    </delete>
+
+    <select id="findWish" resultMap="wish">
+        SELECT *
+        FROM LEE.board_wish_list
+        WHERE board_id = #{boardId}
+          AND b_wanted_member_id = #{memberId}
+    </select>
+
+    <!-- report   -->
+
+    <select id="oneReport" resultMap="boardReport">
+        SELECT *
+        FROM LEE.board_report
+        WHERE board_id = #{boardId}
+          AND member_id = #{memberId}
+    </select>
+
+    <insert id="sendReport">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.board_report_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.board_report (id, board_id, member_id, contents)
+        VALUES (#{id} , #{boardId}, #{memberId}, #{contents})
+    </insert>
+
+    <delete id="removeReport">
+        DELETE
+        FROM LEE.board_report
+        WHERE board_id = #{boardId}
+          AND member_id = #{memberId}
+    </delete>
+
+
+    <resultMap id="BoardComment" type="marcat.board.vo.BoardComments">
+        <result property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <result property="admNm" column="adm_Nm"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="memberPicture" column="MI_SAVED_FILE_NAME"/>
+    </resultMap>
+
+    <resultMap id="CommentMember" type="marcat.board.dto.CommentMemberDTO">
+        <result property="memberId" column="member_id"/>
+        <result property="admNm" column="adm_Nm"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="memberPicture" column="MI_SAVED_FILE_NAME"/>
+    </resultMap>
+
+    <resultMap id="createComment" type="marcat.board.vo.BoardComments">
+        <result property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <result property="admNm" column="adm_Nm"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="memberPicture" column="MI_SAVED_FILE_NAME"/>
+    </resultMap>
+
+    <resultMap id="boardAllList" type="marcat.board.dto.BoardListDTO">
+        <result property="id" column="board_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="Board" type="marcat.board.vo.Board">
+        <result property="id" column="board_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+        <result property="wishCount" column="wish_count"/>
+        <result property="nickname" column="nick_name"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_Nm"/>
+        <collection property="boardImages" resultMap="BoardImages"/>
+        <collection property="member" resultMap="Member"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+        <collection property="boardReport" resultMap="boardReport"/>
+        <collection property="boardWishList" resultMap="wishList"/>
+    </resultMap>
+
+    <resultMap id="BoardImages" type="marcat.board.vo.BoardImages">
+        <id property="id" column="id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="originFileName" column="origin_file_name"/>
+        <result property="savedFileName" column="saved_file_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="koreaArea" type="marcat.goods.vo.KoreaArea">
+        <id property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_nm"/>
+    </resultMap>
+
+    <resultMap id="Member" type="marcat.members.vo.Member">
+        <id property="id" column="member_id"/>
+        <result property="nickName" column="nick_name"/>
+    </resultMap>
+
+    <resultMap id="MemberImages" type="marcat.members.vo.MemberImages">
+        <id property="id" column="mi_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="originFileName" column="mi_origin_file_name"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="createTime" column="mi_create_time"/>
+    </resultMap>
+
+    <resultMap id="Comments" type="marcat.board.vo.BoardComments">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+        <result property="createTime" column="create_time"/>
+        <result property="memberPicture" column="MI_SAVED_FILE_NAME"/>
+        <collection property="admNm" resultMap="koreaArea"/>
+        <collection property="nickname" resultMap="Member"/>
+    </resultMap>
+
+
+    <resultMap id="wish" type="marcat.board.vo.BoardWishList">
+        <id property="id" column="bwl_id"/>
+        <result property="memberId" column="b_wanted_member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="bwlCreateTime" column="bwl_create_time"/>
+        <collection property="boardImages" resultMap="BoardImages"/>
+        <collection property="board" resultMap="Board"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+        <collection property="member" resultMap="Member"/>
+    </resultMap>
+
+    <resultMap id="wishList" type="marcat.board.vo.BoardWishList">
+        <id property="id" column="bwl_id"/>
+        <result property="memberId" column="b_wanted_member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="bwlCreateTime" column="bwl_create_time"/>
+    </resultMap>
+
+    <resultMap id="boardReport" type="marcat.board.vo.BoardReport">
+        <id property="id" column="id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="contents" column="contents"/>
+    </resultMap>
+
+
+    <update id="viewCountUp">
+        UPDATE LEE.board
+        SET view_count = nvl(view_count, 0) + 1
+        WHERE board_id = #{id}
+    </update>
+    <!-- 검색을 위한 조건 처리문 : list, totalCount에서 각각 사용한다. -->
+    <sql id="search">
+        <if test="searchType != null">
+            <if test="searchType == 't'.toString()">
+                where ( title like '%'||#{keyword}||'%' )
+            </if>
+            <if test="searchType == 'w'.toString()">
+                where ( nick_name like '%'||#{keyword}||'%' )
+            </if>
+            <if test="searchType == 'tw'.toString()">
+                where ( title like '%'||#{keyword}||'%'
+                or nick_name like '%'||#{keyword}||'%' )
+            </if>
+        </if>
+    </sql>
+
+</mapper>

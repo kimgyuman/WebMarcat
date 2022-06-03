@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration PUBLIC "-//APACHE//DTD LOG4J 1.2//EN" "log4j.dtd">
+<log4j:configuration>
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5p %c{1} (%L) - %m%n"/>
+        </layout>
+    </appender>
+    <!-- 로그관련 파일 추가 -->
+    <!-- file 부분에 실제로 저장하고 싶은  경로와 파일이름을 적성-->
+    <appender name="download" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="file" value="/usr/local/tomcat9.0/apache-tomcat-9.0.62/webapps/log.info"/>
+        <param name="Append" value="true"/>
+        <param name="dataPattern" value=".yyyy-MM-dd"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5p %c{1} (%L) - %m%n" />
+        </layout>
+    </appender>
+
+    <logger name="org.springframework.core">
+        <level value="info"/>
+    </logger>
+    <logger name="org.springframework.beans">
+        <level value="info"/>
+    </logger>
+    <logger name="org.springframework.context">
+        <level value="info"/>
+    </logger>
+    <logger name="org.springframework.web">
+        <level value="info"/>
+    </logger>
+
+    <!-- Root Logger -->
+    <root>
+        <priority value="info"/>
+        <appender-ref ref="console"/>
+        <appender-ref ref="download"/>
+    </root>
+</log4j:configuration>

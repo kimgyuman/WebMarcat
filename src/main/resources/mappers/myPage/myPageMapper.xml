@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.myPage.dao.MyPageDAO">
+
+
+<!--    dto를 이용해 resultMap 여러개 등록 해도 됨-->
+<!--    <resultMap id="" type="marcat.myPage.vo.">-->
+<!--        <id property="" column="" />-->
+<!--        <result property="" column="" />-->
+<!--        <result property="" column="" />-->
+<!--    </resultMap>-->
+
+</mapper>

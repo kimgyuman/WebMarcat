@@ -1,0 +1,114 @@
+body{
+    width:100%;
+    height:100vh;
+}
+.modal{
+    position: fixed;
+    top: 47%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.report_reason{
+    width: auto;
+    height: 40px;
+    margin: 5px;
+    background-color:#1fa5fd;
+    border-radius:6px;
+    border:0;
+    display:inline-block;
+    cursor:pointer;
+    color:#ffffff;
+    font-family:Arial;
+    font-size:15px;
+    font-weight:bold;
+    padding:6px 24px;
+    text-decoration:none;
+}
+
+.report_reason:hover {
+    background-color:#0b5ed7;
+}
+
+html {
+    font-family: 'Lora', sans-serif;
+    width: 100%;
+}
+
+/*body {*/
+/*    margin: 5% auto 0 auto;*/
+/*    width: 90%;*/
+/*    max-width: 1125px;*/
+/*}*/
+
+/*h1 {*/
+/*    font-size: 28px;*/
+/*    margin-bottom: 2.5%;*/
+/*}*/
+
+.divider-custom {
+    margin: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.divider-custom .divider-custom-line {
+    width: 100%;
+    max-width: 7rem;
+    height: 0.25rem;
+    background-color: #2c3e50;
+    border-radius: 1rem;
+    border-color: #2c3e50;
+}
+
+.divider-custom .divider-custom-line:first-child {
+    margin-right: 1rem;
+}
+
+.divider-custom .divider-custom-line:last-child {
+    margin-left: 1rem;
+}
+
+.divider-custom .divider-custom-icon {
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.divider-custom.divider-light .divider-custom-line {
+    background-color: #fff;
+}
+
+.divider-custom.divider-light .divider-custom-icon {
+    color: #fff;
+}
+
+
+
+
+.report_submit{
+    width: auto;
+    float: right;
+    height: 40px;
+    margin: 5px;
+    background-color: #f74040;
+    border-radius:6px;
+    border:0;
+    display:block;
+    cursor:pointer;
+    color:#ffffff;
+    font-family:Arial;
+    font-size:12px;
+    font-weight:bold;
+    padding:4px 12px;
+    text-decoration:none;
+}
+
+.report_submit:hover{
+    background-color: rgba(119, 27, 36, 0.89);
+}
+
+.report_submit:active{
+    background-color: #5cb85c;
+}

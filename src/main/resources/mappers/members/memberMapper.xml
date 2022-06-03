@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="marcat.members.dao.MemberDAO">
+
+    <!-- 회원정보 전체 조회 SQL -->
+    <select id="AllList" resultMap="Member">
+        SELECT m.member_id,
+               m.adm_cd8,
+               m.u_id,
+               m.passwd,
+               m.name,
+               m.nick_name,
+               m.phone_num,
+               m.create_time,
+               m.rolestatus,
+               m.activated,
+               m.access_token,
+               m.refresh_token,
+               m.kakao_email,
+               mj.mi_id,
+               mj.member_id,
+               mj.mi_origin_file_name,
+               mj.mi_saved_file_name,
+               mj.mi_create_time,
+               k.adm_nm
+        FROM LEE.MEMBER m
+                 JOIN LEE.MEMBER_IMAGES mj ON m.MEMBER_ID = mj.MEMBER_ID
+                 JOIN LEE.KOREAAREA k on m.adm_cd8 = k.adm_cd8
+    </select>
+
+    <!-- id를 통한 member 조회 -->
+    <select id="FindMemberWithId" resultMap="Member">
+        SELECT m.member_id,
+               m.adm_cd8,
+               m.u_id,
+               m.passwd,
+               m.name,
+               m.nick_name,
+               m.phone_num,
+               m.create_time,
+               m.rolestatus,
+               m.activated,
+               m.access_token,
+               m.refresh_token,
+               m.kakao_email,
+               mj.mi_id,
+               mj.member_id,
+               mj.mi_origin_file_name,
+               mj.mi_saved_file_name,
+               mj.mi_create_time,
+               k.adm_nm
+        FROM LEE.MEMBER m
+                 JOIN LEE.MEMBER_IMAGES mj ON m.MEMBER_ID = mj.MEMBER_ID
+                 JOIN LEE.KOREAAREA k on m.adm_cd8 = k.adm_cd8
+        where m.MEMBER_ID = #{id}
+    </select>
+
+    <!-- uId를 통한 member 조회 -->
+    <select id="Login" resultMap="Member">
+        SELECT m.member_id,
+               m.adm_cd8,
+               m.u_id,
+               m.passwd,
+               m.name,
+               m.nick_name,
+               m.phone_num,
+               m.create_time,
+               m.rolestatus,
+               m.activated,
+               m.access_token,
+               m.refresh_token,
+               m.kakao_email,
+               mj.mi_id,
+               mj.member_id,
+               mj.mi_origin_file_name,
+               mj.mi_saved_file_name,
+               mj.mi_create_time,
+               k.adm_nm
+        FROM LEE.MEMBER m
+                 JOIN LEE.MEMBER_IMAGES mj ON m.MEMBER_ID = mj.MEMBER_ID
+                 JOIN LEE.KOREAAREA k on m.adm_cd8 = k.adm_cd8
+        where m.U_ID = #{uId}
+    </select>
+
+    <!-- nickName 중복확인 -->
+    <select id="NickName" resultType="int">
+        select COUNT(*)
+        from LEE.MEMBER
+        where nick_name = #{nickName}
+    </select>
+
+    <!-- phoneNum을 통한 member 조회 -->
+    <select id="PhoneNum" resultMap="Member">
+        SELECT m.member_id,
+               m.adm_cd8,
+               m.u_id,
+               m.passwd,
+               m.name,
+               m.nick_name,
+               m.phone_num,
+               m.create_time,
+               m.rolestatus,
+               m.activated,
+               m.access_token,
+               m.refresh_token,
+               m.kakao_email,
+               mj.mi_id,
+               mj.member_id,
+               mj.mi_origin_file_name,
+               mj.mi_saved_file_name,
+               mj.mi_create_time,
+               k.adm_nm
+        FROM LEE.MEMBER m
+                 JOIN LEE.MEMBER_IMAGES mj ON m.MEMBER_ID = mj.MEMBER_ID
+                 JOIN LEE.KOREAAREA k on m.adm_cd8 = k.adm_cd8
+        where m.PHONE_NUM = #{phoneNum}
+    </select>
+
+    <!-- uId를 통한 member 조회 -->
+    <select id="FindJustMember" resultMap="Member">
+        SELECT m.member_id,
+               m.adm_cd8,
+               m.u_id,
+               m.passwd,
+               m.name,
+               m.nick_name,
+               m.phone_num,
+               m.create_time,
+               m.rolestatus,
+               m.activated,
+               m.access_token,
+               m.refresh_token,
+               m.kakao_email
+        FROM LEE.MEMBER m
+        where m.U_ID = #{uId}
+    </select>
+
+    <!-- 회원가입 -->
+    <insert id="SignUp">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.member_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.MEMBER (member_id, adm_cd8, u_id, passwd, name, nick_name, phone_num, create_time, rolestatus,
+        activated, access_token, refresh_token, kakao_email) VALUES (#{id} , #{admCd8}, #{uId}, #{passwd}, #{name},
+        #{nickName}, #{phoneNum}, #{createTime}, #{roleStatus}, #{activated}, #{accessToken,jdbcType=VARCHAR},
+        #{refreshToken,jdbcType=VARCHAR}, #{kakaoEmail,jdbcType=VARCHAR})
+    </insert>
+
+    <!-- 회원가입 -->
+    <insert id="InsertImages">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            select LEE.member_images_seq.nextval from dual
+        </selectKey>
+        INSERT INTO LEE.member_images (mi_id, member_id, mi_origin_file_name, mi_saved_file_name, mi_create_time) VALUES (#{id} , #{memberId}, #{originFileName}, #{savedFileName}, #{createTime})
+    </insert>
+
+    <select id="FindJuso" resultMap="jusoDTO">
+        select ADM_NM, ADM_CD8
+        from LEE.KOREAAREA
+        where ADM_NM like '%' || #{juso} || '%'
+    </select>
+
+    <update id="UpdatePw">
+        update LEE.MEMBER
+        set passwd = #{passwd}
+        where u_id = #{uId}
+    </update>
+
+    <delete id="DeleteMember">
+        DELETE FROM LEE.MEMBER WHERE MEMBER_ID = #{id}
+    </delete>
+
+    <resultMap id="Member" type="marcat.members.vo.Member">
+        <id property="id" column="member_id"/>
+        <result property="admCd8" column="adm_cd8"/>
+        <result property="uId" column="u_id"/>
+        <result property="passwd" column="passwd"/>
+        <result property="name" column="name"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="phoneNum" column="phone_num"/>
+        <result property="createTime" column="create_time"/>
+        <result property="roleStatus" column="rolestatus"/>
+        <result property="activated" column="activated"/>
+        <result property="accessToken" column="access_token"/>
+        <result property="refreshToken" column="refresh_token"/>
+        <result property="kakaoEmail" column="kakao_email"/>
+        <collection property="memberImages" resultMap="MemberImages"/>
+        <collection property="koreaArea" resultMap="koreaArea"/>
+    </resultMap>
+
+    <resultMap id="jusoDTO" type="marcat.members.dto.JusoDTO">
+        <id property="admCd8" column="ADM_CD8"/>
+        <result property="admNm" column="ADM_NM"/>
+    </resultMap>
+
+    <resultMap id="koreaArea" type="marcat.goods.vo.KoreaArea">
+        <id property="admCd8" column="adm_cd8"/>
+        <result property="admNm" column="adm_nm"/>
+    </resultMap>
+
+    <resultMap id="MemberImages" type="marcat.members.vo.MemberImages">
+        <id property="id" column="mi_id"/>
+        <result property="memberId" column="member_id"/>
+        <result property="originFileName" column="mi_origin_file_name"/>
+        <result property="savedFileName" column="mi_saved_file_name"/>
+        <result property="createTime" column="mi_create_time"/>
+    </resultMap>
+
+
+    <!--    <sql id="selectProduct">-->
+    <!--        select id,name,maker,price from rest_product-->
+    <!--    </sql>-->
+    <!--    <select id="getAllProductList"  resultType="productVO">-->
+    <!--        <include refid="selectProduct"></include>-->
+    <!--        order by id desc-->
+    <!--    </select>-->
+    <!--    <select id="findProductById"  resultType="productVO" >-->
+    <!--        <include refid="selectProduct"></include>-->
+    <!--        where id=#{value}-->
+    <!--    </select>-->
+    <!--    <insert id="registerProduct" parameterType="productVO">-->
+    <!--        <selectKey keyProperty="id" resultType="string" order="BEFORE">-->
+    <!--            select rest_product_seq.nextval from dual-->
+    <!--        </selectKey>-->
+    <!--        insert into rest_product(id,name,maker,price)-->
+    <!--        values(#{id},#{name},#{maker},#{price})-->
+    <!--    </insert>-->
+    <!--    <delete id="deleteProduct" parameterType="string">-->
+    <!--        delete from rest_product where id=#{value}-->
+    <!--    </delete>-->
+    <!--    <update id="updateProduct" parameterType="productVO">-->
+    <!--        update rest_product set name=#{name},maker=#{maker},price=#{price}-->
+    <!--        where id=#{id}-->
+    <!--    </update>-->
+</mapper>

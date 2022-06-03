@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util" xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- HikariCP 빈등록 -->
+    <context:property-placeholder location="classpath:config/database.properties"/>
+    <bean id="hikariConfig" class="com.zaxxer.hikari.HikariConfig">
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.name}"/>
+        <property name="password" value="${jdbc.pass}"/>
+    </bean>
+    <!-- cd editor관련 -->
+    <!--HikariCP Configration-->
+        <bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <constructor-arg ref="hikariConfig"/>
+    </bean>
+
+    <!-- MyBatis 핵심객체 SqlSessionFactory 빈 등록 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath*:/mappers/**/*Mapper.xml"/>
+    </bean>
+    <!-- Thread-safe -->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg ref="sqlSessionFactory"/>
+    </bean>
+
+    <!-- properties 파일 등록 -->
+    <util:properties id="auth" location="classpath:config/auth.properties"/>
+    <util:properties id="aws" location="classpath:config/aws.properties"/>
+
+    <mvc:annotation-driven/> <!-- Annotation 활성화 -->
+    <context:component-scan base-package="marcat"/> <!-- Component Package 지정 -->
+
+    <!-- View Resolver 세팅 -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <!-- resources 위치 등록 -->
+    <mvc:resources mapping="/css/**" location="/resources/css/"/>
+    <mvc:resources mapping="/js/**" location="/resources/js/"/>
+    <mvc:resources mapping="/img/**" location="/resources/img/"/>
+    <mvc:resources location="/resources/" mapping="/resources/**"/>
+
+    <!-- fileUpload -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+        <property name="maxUploadSize" value="52428800"/> <!-- 50MB -->
+        <property name="maxInMemorySize" value="1048576"/> <!-- 1MB -->
+    </bean>
+
+    <!-- 횡단 관심 사항 서비스를 정의한 bean -->
+    <bean id="loggingService" class="marcat.LoggingService"/>
+
+    <!-- AOP 설정 -->
+    <aop:config>
+        <aop:aspect ref="loggingService">
+            <!--  pointcut : 적용대상을 지정
+                - public : 메서드 접근 제어자
+                - * : 모든 리턴타입이 대상
+                - org.kosta.model.. : org.kosta.model의 하위 패키지의 하위 패키지까지 모두 선택
+                - *Service : Service로 끝나는 class
+                - * : 그 안에있는 모든 메서드 명
+                - (..) : 모든 매개변수가 대상이 된다 (int, String, 0 등등..)-->
+            <!-- execution([접근제어자] [returnType].[package]..[className].[method].([매개변수리스트]) -->
+            <aop:pointcut expression="execution(* marcat..*Service.*(..))" id="pt"/>
+            <aop:before method="beforeLogging" pointcut-ref="pt"/>
+            <aop:after-returning method="doAfter" returning="obj" pointcut-ref="pt"/>
+            <aop:around method="doAround" pointcut-ref="pt"/>
+        </aop:aspect>
+    </aop:config>
+</beans>

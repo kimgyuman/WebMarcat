@@ -1,0 +1,49 @@
+.error_msg {
+    font-size: 15px;
+    margin-bottom: 5px;
+    color: #f74040;
+    visibility: visible;
+    display: block;
+}
+
+.register-container {
+    position: relative;
+    margin: 5% auto 10% auto;
+    max-width: 340px;
+}
+
+.timer {
+    /*vertical-align: middle;*/
+    color: red;
+}
+
+.pwdWrap {
+    visibility: hidden;
+    display: none;
+}
+
+.pwdCheckWrap {
+    visibility: hidden;
+    display: none;
+}
+
+.card {
+    margin-top:20px;
+    background-color: #f2f3f8;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 15px 1px rgba(52,40,104,.08);
+}
+
+.card {
+    position: relative;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid #e5e9f2;
+    border-radius: .2rem;
+}
